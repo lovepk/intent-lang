@@ -33,7 +33,7 @@
 
 ## 状态
 
-- M0 文档骨架 ✅ / M1 IL ✅ / M2 档案仓库+对话内核 ✅ / M5 真实 LLM 闭环验证 ✅（详见 `docs/04-plan.md`）。
+- M0 文档骨架 ✅ / M1 IL ✅ / M2 档案仓库+对话内核 ✅ / M3 复现+相似度 ✅ / M5 真实 LLM 闭环验证 ✅（详见 `docs/04-plan.md`）。
 - 技术栈：Go。Provider：`deepseek`（真实，OpenAI 兼容协议，可扩展其他模型）。
 - 运行需 `.env` 提供 `DEEPSEEK_API_KEY_A/B`（文件已 gitignore，不入库）。
 
@@ -46,6 +46,8 @@ go run ./cmd/intent-lang verify --key A --msg "加上乘法"
     # 单轮遵守度检查：看模型对这份档案的重写是否合法
 go run ./cmd/intent-lang repro  --key B --archive .intent/archive.last.intent --out artifact.py
     # 失忆复现：仅凭档案重建产物
+go run ./cmd/intent-lang compare --ref a.py --cand b.py --threshold 0.95 --fidelity structure
+    # 复现相似度报告（LCS diff + 归一化分数；behavior 层改用 ACCEPT 行为验收）
 go run ./cmd/intent-lang log / show <id> / rollback <id> --repo .intent
     # 档案版本管理：提交历史 / 查看某 commit / 回滚 HEAD
 ```

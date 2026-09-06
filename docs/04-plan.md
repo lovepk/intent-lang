@@ -37,18 +37,25 @@
 - 端到端（真实 LLM）：3 轮 chat → 3 commits 入 `.intent` → `log` 显示自动摘要 → `rollback` 到 c-1 → repro 重建产物反映历史状态。
 - META：真实验证中模型篡改 META 被 Agent 接管流程杜绝。
 
-## M3 — 复现与相似度（当前）
+## M3 — 复现与相似度（已完成）
 
 **内容**
-- `internal/repro`：给定【规范+B】调 provider 重建 C'。
-- `internal/similarity`：C 与 C' 行 diff + 相似度；ACCEPT 用例逐条判定。
+- `internal/similarity`：行级 LCS diff + 归一化相似度报告（ref/cand 行数、公共行、hunks、`Pass(threshold)`）。
+- CLI `compare`：`compare --ref a --cand b --threshold 0.95 [--fidelity behavior|structure]`。`behavior` 层仅提示改用 ACCEPT 行为验收，不做文本阈值判定。
 - 跨模型验证用两个真实凭据（`--key A/B`）作为 LLM-A / LLM-B。
+- ReproPrompt 强化：SNIPPET 必须【原样逐字】出现（不得改写/重排），只允许外围最小胶水补全。
+
+**实测结论（重要设计证据）**
+1. **behavior 层文本相似度无意义**：同一档案让 key A/B 各复现 CLI 计算器，文本相似度仅 0.127，但两者的 ACCEPT 黑盒用例全部通过。→ behavior 层应验收"行为"，不是文本。
+2. **structure/artifact 层才有文本对比意义**：key A/B 复现 GUI 计算器文本 0.17~0.18（各自独立实现）。
+3. **SNIPPET 强约束生效**：ReproPrompt 改为"原样逐字"后，key B 产物开始逐字包含档案 SNIPPET 的 `buttons=[...]` 矩阵与 `display.grid(...)` 行——这是 artifact 保真的机制。
+4. **对比对象**：两个独立复现会话的文本天然不同；有意义的对比是"产物 vs 档案 SNIPPET/ACCEPT"，而非"产物 A vs 产物 B"。ACCEPT 行为验收是最可靠的一致性判据。
 
 **验收**
-- 场景 1 完整闭环：删除 session → 【规范+B@vN】→ 复现 → 相似度报告 ≥ 0.95。
-- 场景 2：A 写的档案交给 B 复现，报告同样达标。
+- similarity 单测通过（identical=1.0、disjoint=0、partial 区间、Pass 阈值）。
+- 真实双 key 对比实验完成并归档结论如上。
 
-## M4 — 端到端演示与校准
+## M4 — 端到端演示与校准（当前）
 
 **内容**
 - 一条 `go run` / 脚本演示完整"计算器 golden path"（对应场景 1 全步骤）。

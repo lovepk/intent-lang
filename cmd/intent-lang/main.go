@@ -36,6 +36,8 @@ func run() error {
 		return verify(os.Args[2:])
 	case "repro":
 		return repro(os.Args[2:])
+	case "compare":
+		return compare(os.Args[2:])
 	case "log":
 		return cmdLog(os.Args[2:])
 	case "show":
