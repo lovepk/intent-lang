@@ -138,7 +138,7 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 	content := cr.Choices[0].Message.Content
 
 	if req.Mode == ModeRepro {
-		return Response{Reply: content}, nil
+		return Response{Reply: StripFence(content)}, nil
 	}
 
 	var out struct {

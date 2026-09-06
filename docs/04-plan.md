@@ -1,4 +1,4 @@
-# 计划 (Plan) — 里程碑路线
+﻿# 计划 (Plan) — 里程碑路线
 
 > 原则：文档先行 → mock 闭环先跑通 → 接口稳定后再接真实 LLM。每个里程碑都有可验证的验收标准。
 
@@ -23,18 +23,20 @@
 - Go 单元测试通过：il 解析/校验/规范化 + mock 确定性 + 计算器消息序列更新 + 无关消息不产生 commit + 无重复功能。
 - 非法档案被 `il` 校验拒绝，并有对应测试。
 
-## M2 — 对话内核与档案仓库（当前）
+## M2 — 对话内核与档案仓库（已完成）
 
 **内容**
-- `internal/agent`：装配（规范 + 最新 B）→ 调 provider → 校验 → 更新 → commit。
-- `internal/archive`：commit 链持久化（文件 JSON/文本）、`log/show/rollback/export`。
+- `internal/archive`：线性 commit 链仓库，持久化为目录（`HEAD` + `c-<ts>.json`）。支持 `Append`（含 commit message 自动摘要 diff）、`Log`、`Show`、`SetHead` 回滚。
+- `internal/il.MetaUnchanged`：META 保护——LLM 改动的档案若动了 META 段，本次变更被 Agent 拒绝（il-spec §6）。
+- CLI 扩展：`chat` 接入仓库（repo 默认 `.intent`，每次档案变更写 commit + 自动 commit message）；新增 `log` / `show` / `rollback <id>`。
+- M1 待办补全：mock repro 模式（离线确定性重建产物）、`provider.Retry` 装饰器（非法输出追加纠正指令重试）、`provider.StripFence`（repro 产物围栏防御清洗）。
 
 **验收**
-- CLI 能跑场景 1 的第 1–7 步（对话式），打印 reply 与每次 commit（diff + message）。
-- 场景 4（续写不依赖历史消息）通过：只给【规范+最新 B+新消息】即可继续。
-- 回滚测试通过（场景 3 的 commit 操作）。
+- archive 单测：append/head/persist/summarize/rollback 全通过。
+- 端到端（mock）：3 轮 chat → 3 commits 入 `.intent` → `log` 显示自动摘要 → `rollback` 到 c-1 → repro 重建产物仅含加减（历史状态正确还原）。
+- META 保护测试：改动 commits/增删行均被 `MetaUnchanged` 检出。
 
-## M3 — 复现与相似度
+## M3 — 复现与相似度（当前）
 
 **内容**
 - `internal/repro`：给定【规范+B】调 provider 重建 C'。

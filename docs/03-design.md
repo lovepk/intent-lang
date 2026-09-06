@@ -36,15 +36,12 @@
 
 ## 2. 模块划分
 
-| 模块 | 职责 | 位置建议 |
-|------|------|----------|
-| `il` | 意图语言：档案 B 的解析、序列化、校验、规范化（canonical form，供 diff）。 | `internal/il/` |
-| `provider` | LLM 抽象：统一请求/响应接口；`mock` 与将来 `openai`/`anthropic` 等实现。 | `internal/provider/` |
-| `agent` | 双通道对话内核：装配请求上下文、接收响应、触发档案更新、写 commit。 | `internal/agent/` |
-| `archive` | 档案仓库：B 的持久化、版本历史、commit、回滚、加载"最新 B"。 | `internal/archive/` |
-| `repro` | 复现器：给定【规范+B】调 Provider 生成 C'；产出物落盘。 | `internal/repro/` |
-| `similarity` | 对比 C 与 C'：文本行 diff、结构归一化对比、相似度分数；可运行验收用例。 | `internal/similarity/` |
-| `cli` | 命令行入口：驱动以上模块做交互式对话 / 批处理复现。 | `cmd/intent-lang/` |
+| 模块 | 职责 | 位置 |
+|------|------|------|
+| `il` | 意图语言：档案 B 的解析、序列化、校验、规范化（canonical form，供 diff）、MetaUnchanged 保护、SpecPrompt/ReproPrompt。 | `internal/il/` |
+| `provider` | LLM 抽象：`Provider` 接口 + `mock`（写档+repro）+ `deepseek`（真实）+ `Retry` 装饰器 + `StripFence`。 | `internal/provider/` |
+| `archive` | 档案仓库：commit 链持久化（`.intent/` 目录）、自动 commit message 摘要、log/show/rollback。 | `internal/archive/` |
+| `cli` | 命令行入口：`chat`/`verify`/`repro`/`log`/`show`/`rollback`。 | `cmd/intent-lang/` |
 | `docs` | 文档：本文与目标/场景/规范/计划。 | `docs/` |
 
 ## 3. 核心概念与数据流
@@ -174,27 +171,29 @@ intent-lang/
 │   ├── 03-design.md
 │   ├── il-spec.md
 │   └── 04-plan.md
-├── cmd/intent-lang/main.go
+├── cmd/intent-lang/   # main / chat / verify / repro / repo(log,show,rollback) / dotenv
 ├── internal/
-│   ├── il/            # 解析/校验/规范化/生成
-│   ├── provider/      # 接口 + mock
-│   ├── agent/         # 对话内核
-│   ├── archive/       # 档案仓库 + commit
+│   ├── il/            # 解析/校验/规范化/Meta保护/提示词
+│   ├── provider/      # 接口 + mock + deepseek + retry + strip
+│   ├── archive/       # 档案仓库 + commit 链 + 摘要
 │   ├── repro/         # 复现器
 │   ├── similarity/    # 对比报告
 │   └── …
-└── testdata/          # 计算器 demo 的规范与档案样例
+└── testdata/          # 计算器档案样例 + 真实 LLM 验证产物
 ```
 
 ## 8. 开放问题
 
-**已拍板**（写入 il-spec v1.0）：
+**已拍板**（写入 il-spec v1.0 与实现）：
 
 - 语义解释器 = LLM（始终）；IL 不追求可编译文法。
 - 人类可读性列为第四原则：非程序员无需编程知识即可读懂（il-spec 2.5 对照表约束了传统语法要素的呈现形态）。
 - OQ-3（功能点粒度）：已定——条目为自然语言句子，粒度由"消歧判定"把关，`OPEN` 收纳未消歧项，不再二选一。
+- OQ-1：档案首个版本不预置骨架，LLM 见到第一条需求直接产出档案（实现验证 OK）。
+- OQ-2：不做 History——请求恒为【规范+最新 B+当前消息】（场景 4 已验证成立；这也是"档案即记忆"的机制）。
+- 空档案幻觉防护（实测发现）：无档案时 LLM 会虚构提交历史；Agent 在 archive 为空时应显式让 LLM"从零建档 v0.1"，此分支由 Agent 控制而非模型自行判断。当前 `chat` 在 archive 为空时传空字符串，已依赖 SpecPrompt"空档案=从零开始"约定，未来接仓库时需显式断言。
 
-**仍开放（进入 M1 编码时定）**：
+**遗留（进入 M3/M4 处理）**：
 
-- **OQ-1**：档案 B 首个版本是否需要独立创建？（当前默认：LLM 见到第一条需求直接产出 B@v1，无空档案阶段。）
-- **OQ-2**：历史消息 `History` 何时裁剪？（当 B 足够表达意图时，可把历史压缩为仅【规范+B+当前消息】，对应场景 4。首版先全量保留。）
+- M3 复现相似度工具（对比 C 与 C'，运行 ACCEPT）。
+- M4 端到端演示命令 + 阈值校准。

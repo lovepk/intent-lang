@@ -22,6 +22,9 @@ func NewMock(name string) *Mock {
 func (m *Mock) Name() string { return m.name }
 
 func (m *Mock) Complete(ctx context.Context, req Request) (Response, error) {
+	if req.Mode == ModeRepro {
+		return mockRepro(req)
+	}
 	doc, err := il.Parse(req.Archive)
 	if err != nil && strings.TrimSpace(req.Archive) != "" {
 		return Response{}, fmt.Errorf("mock: parse archive: %w", err)
@@ -208,4 +211,155 @@ func hasUI(doc *il.Doc) bool {
 
 func joinOps(ops []string) string {
 	return strings.Join(ops, "、")
+}
+
+func mockRepro(req Request) (Response, error) {
+	doc, err := il.Parse(req.Archive)
+	if err != nil {
+		return Response{}, fmt.Errorf("mock repro: parse: %w", err)
+	}
+	ops := mockOpsInArchive(doc)
+	hasGUI := false
+	for _, op := range ops {
+		if op == "gui" {
+			hasGUI = true
+		}
+	}
+
+	body := new(strings.Builder)
+	genOpFuncs(body, ops)
+	if hasGUI {
+		genGUI(body)
+	} else {
+		genCLI(body, ops)
+	}
+	return Response{Reply: body.String()}, nil
+}
+
+func mockOpsInArchive(doc *il.Doc) []string {
+	ops := []string{}
+	sec := doc.Section("CONTRACT")
+	if sec == nil {
+		return ops
+	}
+	for _, line := range sec.Lines {
+		switch {
+		case strings.Contains(line, "add("):
+			ops = appendUnique(ops, "add")
+		case strings.Contains(line, "subtract("):
+			ops = appendUnique(ops, "subtract")
+		case strings.Contains(line, "multiply("):
+			ops = appendUnique(ops, "multiply")
+		case strings.Contains(line, "divide("):
+			ops = appendUnique(ops, "divide")
+		case strings.Contains(line, "tkinter") || strings.Contains(line, "4x4"):
+			ops = appendUnique(ops, "gui")
+		}
+	}
+	if len(ops) == 0 {
+		return []string{"add", "subtract"}
+	}
+	return ops
+}
+
+func appendUnique(list []string, s string) []string {
+	for _, v := range list {
+		if v == s {
+			return list
+		}
+	}
+	return append(list, s)
+}
+
+func genOpFuncs(b *strings.Builder, ops []string) {
+	for _, op := range ops {
+		switch op {
+		case "add":
+			fmt.Fprintf(b, "def add(a, b):\n    return a + b\n")
+		case "subtract":
+			fmt.Fprintf(b, "def subtract(a, b):\n    return a - b\n")
+		case "multiply":
+			fmt.Fprintf(b, "def multiply(a, b):\n    return a * b\n")
+		case "divide":
+			fmt.Fprintf(b, "def divide(a, b):\n    if b == 0:\n        raise ZeroDivisionError\n    return a / b\n")
+		}
+	}
+}
+
+func genCLI(b *strings.Builder, ops []string) {
+	fmt.Fprintf(b, "def main():\n")
+	fmt.Fprintf(b, "    while True:\n")
+	fmt.Fprintf(b, "        try:\n")
+	fmt.Fprintf(b, "            line = input('> ').strip()\n")
+	fmt.Fprintf(b, "        except EOFError:\n")
+	fmt.Fprintf(b, "            break\n")
+	fmt.Fprintf(b, "        if not line or line.lower() in ('quit', 'exit'):\n")
+	fmt.Fprintf(b, "            break\n")
+	fmt.Fprintf(b, "        parts = line.split()\n")
+	fmt.Fprintf(b, "        if len(parts) != 3:\n")
+	fmt.Fprintf(b, "            print('invalid input')\n")
+	fmt.Fprintf(b, "            continue\n")
+	fmt.Fprintf(b, "        a, op, b = parts\n")
+	fmt.Fprintf(b, "        try:\n")
+	fmt.Fprintf(b, "            a, b = int(a), int(b)\n")
+	fmt.Fprintf(b, "        except ValueError:\n")
+	fmt.Fprintf(b, "            print('invalid input')\n")
+	fmt.Fprintf(b, "            continue\n")
+	fmt.Fprintf(b, "        fn = {\n")
+	for _, op := range ops {
+		switch op {
+		case "add":
+			fmt.Fprintf(b, "            '+': add,\n")
+		case "subtract":
+			fmt.Fprintf(b, "            '-': subtract,\n")
+		case "multiply":
+			fmt.Fprintf(b, "            '*': multiply,\n")
+		case "divide":
+			fmt.Fprintf(b, "            '/': divide,\n")
+		}
+	}
+	fmt.Fprintf(b, "        }\n")
+	fmt.Fprintf(b, "        if op not in fn:\n")
+	fmt.Fprintf(b, "            print('invalid input')\n")
+	fmt.Fprintf(b, "            continue\n")
+	fmt.Fprintf(b, "        try:\n")
+	fmt.Fprintf(b, "            print(fn[op](a, b))\n")
+	fmt.Fprintf(b, "        except ZeroDivisionError:\n")
+	fmt.Fprintf(b, "            print('division by zero')\n")
+	fmt.Fprintf(b, "\n")
+	fmt.Fprintf(b, "if __name__ == '__main__':\n")
+	fmt.Fprintf(b, "    main()\n")
+}
+
+func genGUI(b *strings.Builder) {
+	fmt.Fprintf(b, "import tkinter as tk\n")
+	fmt.Fprintf(b, "\n")
+	fmt.Fprintf(b, "class Calc(tk.Tk):\n")
+	fmt.Fprintf(b, "    def __init__(self):\n")
+	fmt.Fprintf(b, "        super().__init__()\n")
+	fmt.Fprintf(b, "        self.title('calc')\n")
+	fmt.Fprintf(b, "        self.display = tk.Entry(self)\n")
+	fmt.Fprintf(b, "        self.display.grid(row=0, column=0, columnspan=4)\n")
+	fmt.Fprintf(b, "        keys = ['7','8','9','/','4','5','6','*','1','2','3','-','0','.','+','=']\n")
+	fmt.Fprintf(b, "        r, c = 1, 0\n")
+	fmt.Fprintf(b, "        for k in keys:\n")
+	fmt.Fprintf(b, "            tk.Button(self, text=k, command=lambda k=k: self.press(k)).grid(row=r, column=c)\n")
+	fmt.Fprintf(b, "            c += 1\n")
+	fmt.Fprintf(b, "            if c > 3:\n")
+	fmt.Fprintf(b, "                c = 0\n")
+	fmt.Fprintf(b, "                r += 1\n")
+	fmt.Fprintf(b, "    def press(self, k):\n")
+	fmt.Fprintf(b, "        if k == '=':\n")
+	fmt.Fprintf(b, "            try:\n")
+	fmt.Fprintf(b, "                r = eval(self.display.get())\n")
+	fmt.Fprintf(b, "                self.display.delete(0, 'end')\n")
+	fmt.Fprintf(b, "                self.display.insert(0, str(r))\n")
+	fmt.Fprintf(b, "            except Exception:\n")
+	fmt.Fprintf(b, "                self.display.delete(0, 'end')\n")
+	fmt.Fprintf(b, "                self.display.insert(0, 'error')\n")
+	fmt.Fprintf(b, "        else:\n")
+	fmt.Fprintf(b, "            self.display.insert('end', k)\n")
+	fmt.Fprintf(b, "\n")
+	fmt.Fprintf(b, "if __name__ == '__main__':\n")
+	fmt.Fprintf(b, "    Calc().mainloop()\n")
 }

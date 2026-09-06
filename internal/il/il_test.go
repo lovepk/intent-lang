@@ -177,6 +177,30 @@ func TestParseContentBeforeSection(t *testing.T) {
 	}
 }
 
+func TestMetaUnchanged(t *testing.T) {
+	mk := func(meta string) *Doc {
+		src := "INTENT x@1\nKIND program\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nMETA\n" + meta
+		doc, err := Parse(src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return doc
+	}
+	same := mk("  spec: v1.0\n  commits: 3\n")
+	if !MetaUnchanged(same, mk("  spec: v1.0\n  commits: 3\n")) {
+		t.Error("identical META should be unchanged")
+	}
+	if MetaUnchanged(same, mk("  spec: v1.0\n  commits: 4\n")) {
+		t.Error("changed commits should be detected")
+	}
+	if MetaUnchanged(same, mk("  spec: v1.0\n  commits: 3\n  extra: x\n")) {
+		t.Error("added META line should be detected")
+	}
+	if MetaUnchanged(same, &Doc{}) {
+		t.Error("dropping META should be detected")
+	}
+}
+
 func TestNextID(t *testing.T) {
 	doc, err := Parse("INTENT x@1\nKIND program\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\n  R2: b\nACCEPT\n  A1: ok\n")
 	if err != nil {

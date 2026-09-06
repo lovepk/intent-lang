@@ -8,6 +8,25 @@ import (
 	"intent-lang/internal/il"
 )
 
+func sampleArchive(t *testing.T) string {
+	t.Helper()
+	m := NewMock("mock-a")
+	ctx := context.Background()
+	archive := ""
+	for _, msg := range []string{
+		"做一个计算器，支持加法和减法",
+		"加上乘法",
+		"加上除法",
+	} {
+		resp, err := m.Complete(ctx, Request{User: msg, Archive: archive})
+		if err != nil {
+			t.Fatal(err)
+		}
+		archive = resp.IntentUpdate
+	}
+	return archive
+}
+
 func TestMockDeterministic(t *testing.T) {
 	m := NewMock("mock-a")
 	ctx := context.Background()
