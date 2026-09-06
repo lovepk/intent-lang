@@ -43,7 +43,8 @@
 
 ```sh
 go run ./cmd/intent-lang chat  --key A --repo .intent
-    # 交互式双通道对话：输入需求 → reply + 档案增量更新，每次变更写一条 commit
+    # 交互式双通道对话：输入需求 → reply + 档案增量更新，每次变更写一条 commit；
+    # 退出时打印规范遵守统计（validate 拒绝类型 + lint 位置计数，供语言 v2 演进参考）
 go run ./cmd/intent-lang verify --key A --msg "加上乘法"
     # 单轮遵守度检查：看模型对这份档案的重写是否合法
 go run ./cmd/intent-lang repro  --key B --archive .intent/archive.last.intent --out artifact.py
@@ -54,6 +55,8 @@ go run ./cmd/intent-lang demo --script turns.txt --repo .intent-demo
     # 端到端 golden path：key A 建档 → 删会话 → key B 复现 → ACCEPT 验收 → SNIPPET 点名检查
 go run ./cmd/intent-lang compare --ref a.py --cand b.py --threshold 0.95 --fidelity structure
     # 形态对比（LCS diff + 分数；behavior 层改用 ACCEPT 行为验收）
+go run ./cmd/intent-lang lint --archive x.intent
+    # 语言体检：语法校验 + 一致性 Lint（SNIPPET/保真不匹配、验收与被否功能矛盾、reject 冲突、规范版本）
 go run ./cmd/intent-lang log / show <id> / rollback <id> --repo .intent
     # 档案版本管理：提交历史 / 查看某 commit / 回滚 HEAD
 ```

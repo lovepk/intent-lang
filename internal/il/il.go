@@ -14,6 +14,13 @@ type Header struct {
 	Target   string
 }
 
+// SpecVersion is the current IL language specification version. Archives
+// record it in META.spec; prompts reference it for LLM expectations.
+const SpecVersion = "v1.0"
+
+// MetaSpecLine returns the canonical "spec: <version>" line.
+func MetaSpecLine() string { return "spec: " + SpecVersion }
+
 func (h Header) Complete() bool {
 	return h.Intent != "" && h.Kind != "" && h.Fidelity != "" && h.Target != ""
 }

@@ -69,6 +69,28 @@
 - 端到端 demo 全绿：7 轮建档（7 commits）→ key B 复现 → ACCEPT **10/10 通过**（含 `= 8` 格式自适应）；SNIPPET 点名行 `while True: expr = input('> ').strip()` 完整出现在复现产物。
 - 证据归档：`testdata/demo_calc_archive.intent`（7 轮真实档案）、`testdata/demo_calc_artifact.py`（key B 复现产物）。
 
+## M6 — 语言规范打磨到 v2（已完成第一批：一致性 Lint + 版本化 + 遵守率）
+
+> 目标：语言从"能用"走向"可靠、自洽、可演进"。方向=语言规范优先（用户拍板），暂不追服务形态。
+
+**已完成**
+- `il.Lint`：一致性检查（启发式），规则：
+  1. SNIPPET 存在但 FIDELITY=behavior → 点名锁定形态却没声明保真（suggestion）
+  2. ACCEPT 用例用到被 CONTRACT 否定的功能 → 自相矛盾（error）
+  3. DECISIONS 否决(reject)项仍被 CONTRACT 要求 → 矛盾（error）
+  4. META.spec 与当前规范版本不一致（suggestion）
+- 人可读报告：`LintString()`（分类/计数/位置/中文建议）；CLI `lint` 子命令（语法校验 + lint 一次输出）。
+- 规范版本化：`il.SpecVersion` 常量 + `il.MetaSpecLine()`；cmd/archive 改用统一来源，杜绝散落硬编码。
+- 遵守率统计：`ComplianceStats`（chat 每轮累计 validate 拒绝类型 + lint 位置计数，退出打印报告）。
+- **SpecPrompt 语义收紧（实测发现）**：DECISIONS.reject 只允许写"本次讨论中被否定的备选"，**禁止写"改动前的旧状态"**——calculator_llm_verified fixture 中 D1 reject:"仅支持加减乘"即旧状态写法，导致与 CONTRACT 假矛盾。已同步 il-keywords.md 加 ⚠️ 提示。
+
+**实测验证**
+- 干净档案（demo_calc_archive）lint 零 error；人为制造矛盾档案全部检出，单测覆盖。
+- calculator_llm_verified（早期轮次档案）的"矛盾"检出被判定为档案缺陷（reject 语义错误），从 prompt 源头防，而非削弱 lint。
+
+**下一步（M6 续）**
+- 悬空引用/OPEN 收敛提示、跨轮档案"旧状态"迁移工具（把历史 reject 归一）。
+- 遵守率跑真实多轮后反哺规范 v2 定稿。
 ## M5 — 真实 LLM 接入（已完成核心验证，见下）
 
 **已完成**

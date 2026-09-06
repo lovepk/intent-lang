@@ -40,6 +40,8 @@ func run() error {
 		return compare(os.Args[2:])
 	case "accept":
 		return accept(os.Args[2:])
+	case "lint":
+		return lint(os.Args[2:])
 	case "demo":
 		return demo(os.Args[2:])
 	case "log":
@@ -119,7 +121,7 @@ func validateIL(text string) []error {
 
 func buildMeta(commits int) []string {
 	return []string{
-		"spec: v1.0",
+		il.MetaSpecLine(),
 		"created: " + time.Now().UTC().Format(time.RFC3339),
 		fmt.Sprintf("commits: %d", commits),
 		"deprecated: []",
@@ -158,6 +160,7 @@ func chat(args []string) error {
 		cur = latest.Archive
 	}
 	commits := lenLog(store)
+	stats := newStats()
 
 	fmt.Printf("intent-lang chat via %s（repo: %s）— 输入需求；空行或 exit 退出\n", p.Name(), store.Dir())
 	for {
@@ -172,30 +175,36 @@ func chat(args []string) error {
 
 		beforeRaw := cur
 		beforeDoc := noMeta(beforeRaw)
-		resp, err := p.Complete(ctx, provider.Request{System: il.SpecPrompt, Archive: beforeDoc, User: msg})
-		if err != nil {
+		if resp, err := p.Complete(ctx, provider.Request{System: il.SpecPrompt, Archive: beforeDoc, User: msg}); err != nil {
 			fmt.Println("!!", err)
+			stats.noteValidate([]error{err})
 			continue
+		} else {
+			fmt.Println("--- reply ---")
+			fmt.Println(resp.Reply)
+			if strings.TrimSpace(resp.IntentUpdate) == "" {
+				fmt.Println("(档案未变更)")
+				continue
+			}
+			after := resp.IntentUpdate
+			if errs := validateIL(after); errs != nil {
+				fmt.Println("!! 输出不是合法档案，已拒绝：", errs)
+				stats.noteValidate(errs)
+				continue
+			}
+			commits++
+			c, err := store.Append(archive.Summarize(beforeRaw, after), msg, beforeRaw, after, resp.Reply, buildMeta(commits))
+			if err != nil {
+				return err
+			}
+			cur = c.Archive
+			stats.Commits++
+			if doc, perr := il.Parse(noMeta(cur)); perr == nil {
+				stats.noteLint(doc)
+			}
+			fmt.Printf("--- intent_update（commit %s）---\n", c.ID)
+			fmt.Println(noMeta(c.Archive))
 		}
-		fmt.Println("--- reply ---")
-		fmt.Println(resp.Reply)
-		if strings.TrimSpace(resp.IntentUpdate) == "" {
-			fmt.Println("(档案未变更)")
-			continue
-		}
-		after := resp.IntentUpdate
-		if errs := validateIL(after); errs != nil {
-			fmt.Println("!! 输出不是合法档案，已拒绝：", errs)
-			continue
-		}
-		commits++
-		c, err := store.Append(archive.Summarize(beforeRaw, after), msg, beforeRaw, after, resp.Reply, buildMeta(commits))
-		if err != nil {
-			return err
-		}
-		cur = c.Archive
-		fmt.Printf("--- intent_update（commit %s）---\n", c.ID)
-		fmt.Println(noMeta(c.Archive))
 	}
 
 	if cur != "" {
@@ -205,5 +214,6 @@ func chat(args []string) error {
 		}
 		fmt.Printf("最终档案已写入 %s（累计 %d 次提交）\n", out, commits)
 	}
+	fmt.Print(stats.render())
 	return nil
 }
