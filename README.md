@@ -63,6 +63,16 @@ go run ./cmd/intent-lang log / show <id> / rollback <id> --repo .intent
 
 CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。非法档案输出自动带纠正指令重试（`--retry N`，默认 2）。`accept`/`demo` 需要本机装有 `python`（验收脚本以标准库运行产物）。
 
+## 文件格式与编辑器支持
+
+- 档案文件后缀：**`.intent`**（规范见 `docs/il-spec.md` §2.1）。
+- **VS Code**：`editor/vscode-il/` 是最小扩展包，本地安装即可高亮 `.intent`：
+  ```sh
+  code --install-extension editor/vscode-il/   # 或 VS Code 扩展视图 → Install from VSIX/文件夹
+  ```
+  没有 VS Code 的编辑器可用通用 TextMate grammar：`editor/intent-language.tmLanguage.json`（scope `source.intent`，Sublime Text / nova / 其它 TextMate 兼容编辑器可直接引用）。
+- 高亮覆盖：头部字段（INTENT/KIND/FIDELITY/TARGET）、段落名、条目编号（R/A/D/?）、行内标签（reject:/due:/default:/in:/out:/style:）、`->`、`#` 注释、SNIPPET 原文。
+
 ## 验证证据
 
 - `testdata/calculator_llm_verified.intent`：真实 deepseek 三轮对话产出的档案；`testdata/artifact_verified.py`：key B 仅凭该档案重建的产物，ACCEPT 黑盒用例全数通过。

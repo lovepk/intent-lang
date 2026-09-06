@@ -1,0 +1,136 @@
+{
+  "scopeName": "source.intent",
+  "fileTypes": ["intent"],
+  "name": "Intent Lang (IL)",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#header-fields" },
+    { "include": "#sections" }
+  ],
+  "repository": {
+    "comment": {
+      "match": "#.*$",
+      "name": "comment.line.intent"
+    },
+    "header-fields": {
+      "patterns": [
+        {
+          "match": "^(INTENT|KIND|FIDELITY|TARGET)\\b(.*)$",
+          "captures": {
+            "1": { "name": "keyword.control.header.intent" },
+            "2": { "name": "string.unquoted.header-value.intent" }
+          }
+        }
+      ]
+    },
+    "sections": {
+      "patterns": [
+        {
+          "name": "meta.section.contract.intent",
+          "begin": "^(CONTRACT)(\\s*)$",
+          "end": "(?=^(CONTRACT|ANCHORS|SNIPPET(?:\\s+[^\\s]+)?|ACCEPT|DECISIONS|OPEN|META)\\s*$)",
+          "beginCaptures": { "1": { "name": "entity.name.section.intent" } },
+          "patterns": [ { "include": "#entry-contract" }, { "include": "#comment" }, { "include": "#inline-tags" } ]
+        },
+        {
+          "name": "meta.section.anchors.intent",
+          "begin": "^(ANCHORS)(\\s*)$",
+          "end": "(?=^(CONTRACT|ANCHORS|SNIPPET(?:\\s+[^\\s]+)?|ACCEPT|DECISIONS|OPEN|META)\\s*$)",
+          "beginCaptures": { "1": { "name": "entity.name.section.intent" } },
+          "patterns": [ { "include": "#anchors-lines" }, { "include": "#comment" }, { "include": "#inline-tags" } ]
+        },
+        {
+          "name": "meta.section.snippet.intent",
+          "begin": "^(SNIPPET)(\\s+[^\\s]+)?(\\s*)$",
+          "end": "(?=^(CONTRACT|ANCHORS|SNIPPET(?:\\s+[^\\s]+)?|ACCEPT|DECISIONS|OPEN|META)\\s*$)",
+          "beginCaptures": {
+            "1": { "name": "entity.name.section.intent" },
+            "2": { "name": "entity.name.tag.snippet.intent" }
+          },
+          "patterns": [ { "include": "#snippet-code" }, { "include": "#comment" } ]
+        },
+        {
+          "name": "meta.section.accept.intent",
+          "begin": "^(ACCEPT)(\\s*)$",
+          "end": "(?=^(CONTRACT|ANCHORS|SNIPPET(?:\\s+[^\\s]+)?|ACCEPT|DECISIONS|OPEN|META)\\s*$)",
+          "beginCaptures": { "1": { "name": "entity.name.section.intent" } },
+          "patterns": [ { "include": "#entry-accept" }, { "include": "#comment" }, { "include": "#inline-tags" } ]
+        },
+        {
+          "name": "meta.section.decisions.intent",
+          "begin": "^(DECISIONS)(\\s*)$",
+          "end": "(?=^(CONTRACT|ANCHORS|SNIPPET(?:\\s+[^\\s]+)?|ACCEPT|DECISIONS|OPEN|META)\\s*$)",
+          "beginCaptures": { "1": { "name": "entity.name.section.intent" } },
+          "patterns": [ { "include": "#entry-decisions" }, { "include": "#comment" }, { "include": "#inline-tags" } ]
+        },
+        {
+          "name": "meta.section.open.intent",
+          "begin": "^(OPEN)(\\s*)$",
+          "end": "(?=^(CONTRACT|ANCHORS|SNIPPET(?:\\s+[^\\s]+)?|ACCEPT|DECISIONS|OPEN|META)\\s*$)",
+          "beginCaptures": { "1": { "name": "entity.name.section.intent" } },
+          "patterns": [ { "include": "#entry-open" }, { "include": "#comment" }, { "include": "#inline-tags" } ]
+        },
+        {
+          "name": "meta.section.meta.intent",
+          "begin": "^(META)(\\s*)$",
+          "end": "$^",
+          "beginCaptures": { "1": { "name": "entity.name.section.intent" } },
+          "patterns": [ { "include": "#meta-lines" }, { "include": "#comment" } ]
+        }
+      ]
+    },
+    "entry-contract": {
+      "match": "^\\s*(R\\d+)\\s*:",
+      "captures": {
+        "1": { "name": "variable.other.member.contract-id.intent" }
+      }
+    },
+    "entry-accept": {
+      "match": "^\\s*(A\\d+)\\s*:",
+      "captures": {
+        "1": { "name": "variable.other.member.accept-id.intent" }
+      }
+    },
+    "entry-decisions": {
+      "match": "^\\s*(D\\d+)\\s*:",
+      "captures": {
+        "1": { "name": "variable.other.member.decisions-id.intent" }
+      }
+    },
+    "entry-open": {
+      "match": "^\\s*(\\?\\d+)\\s*:",
+      "captures": {
+        "1": { "name": "variable.other.member.open-id.intent" }
+      }
+    },
+    "anchors-lines": {
+      "match": "^\\s*(in:|out:|style:)",
+      "captures": {
+        "1": { "name": "keyword.other.tag.intent" }
+      }
+    },
+    "inline-tags": {
+      "patterns": [
+        {
+          "match": "(reject:|due:|default:|in:|out:|style:)",
+          "name": "keyword.other.tag.intent"
+        },
+        {
+          "match": "\\b(->)\\b",
+          "name": "keyword.operator.mapping.intent"
+        }
+      ]
+    },
+    "meta-lines": {
+      "match": "^\\s*([a-zA-Z]+)\\s*:\\s*(.*)$",
+      "captures": {
+        "1": { "name": "keyword.other.meta-key.intent" },
+        "2": { "name": "string.unquoted.meta-value.intent" }
+      }
+    },
+    "snippet-code": {
+      "match": "^\\s*(.*)$",
+      "name": "markup.raw.code.intent"
+    }
+  }
+}

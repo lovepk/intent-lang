@@ -1,0 +1,29 @@
+{
+  "name": "intent-lang-il",
+  "displayName": "Intent Lang (IL)",
+  "description": "Syntax highlighting for IL intent archives (.intent) — 意图语言档案",
+  "version": "0.1.0",
+  "publisher": "intent-lang",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "intent",
+        "aliases": ["Intent Lang", "IL", "intent"],
+        "extensions": [".intent"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "intent",
+        "scopeName": "source.intent",
+        "path": "../intent-language.tmLanguage.json"
+      }
+    ]
+  }
+}
