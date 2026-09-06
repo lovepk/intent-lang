@@ -327,6 +327,32 @@ func (d *Doc) MetaLines() []string {
 	return nil
 }
 
+// StripMeta returns a copy of the doc without the META section.
+func (d *Doc) StripMeta() *Doc {
+	out := &Doc{
+		Header:    d.Header,
+		HeaderRaw: map[string]string{},
+	}
+	for k, v := range d.HeaderRaw {
+		out.HeaderRaw[k] = v
+	}
+	for _, s := range d.Sections {
+		if s.Name == "META" {
+			continue
+		}
+		cp := &Section{Name: s.Name, Label: s.Label, Lines: append([]string(nil), s.Lines...)}
+		out.Sections = append(out.Sections, cp)
+	}
+	return out
+}
+
+// WithMeta appends (or replaces) a META section with the given lines.
+func (d *Doc) WithMeta(lines []string) *Doc {
+	out := d.StripMeta()
+	out.Sections = append(out.Sections, &Section{Name: "META", Lines: append([]string(nil), lines...)})
+	return out
+}
+
 // MetaUnchanged reports whether the META section in newDoc equals the one in
 // oldDoc (spec: META is maintained by the Agent, the LLM must not edit it).
 func MetaUnchanged(oldDoc, newDoc *Doc) bool {

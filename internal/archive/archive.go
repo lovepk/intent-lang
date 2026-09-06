@@ -81,18 +81,22 @@ func (s *Store) Get(id string) (*Commit, error) {
 	return &c, nil
 }
 
-func (s *Store) Append(msg, userMsg, before, after, replied string) (*Commit, error) {
+// Append stores a new commit. before/after are canonical archive texts (META
+// ignored for diff purposes); meta provides the META section lines the Agent
+// controls. The stored Archive is after re-serialized with meta attached.
+func (s *Store) Append(msg, userMsg, before, after, replied string, meta []string) (*Commit, error) {
 	head, err := s.HeadID()
 	if err != nil {
 		return nil, err
 	}
 	id := fmt.Sprintf("c-%d", time.Now().UnixNano())
+	stored := attachMeta(after, meta)
 	c := Commit{
 		ID:      id,
 		Parent:  head,
 		Message: msg,
 		UserMsg: userMsg,
-		Archive: after,
+		Archive: stored,
 		Replied: replied,
 		Time:    time.Now().UTC(),
 	}

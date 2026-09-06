@@ -32,11 +32,11 @@ func TestAppendAndHead(t *testing.T) {
 		t.Fatal(err)
 	}
 	v1 := mustParse(t, testDoc("R1: add"))
-	if _, err := store.Append("init", "做加减", "", v1, "hi"); err != nil {
+	if _, err := store.Append("init", "做加减", "", v1, "hi", nil); err != nil {
 		t.Fatal(err)
 	}
 	v2 := mustParse(t, testDoc("R1: add", "R2: multiply"))
-	if _, err := store.Append("feat", "加乘法", v1, v2, "hi2"); err != nil {
+	if _, err := store.Append("feat", "加乘法", v1, v2, "hi2", nil); err != nil {
 		t.Fatal(err)
 	}
 	head, err := store.HeadID()
@@ -66,7 +66,7 @@ func TestPersistAcrossReopen(t *testing.T) {
 	dir := t.TempDir()
 	s1, _ := Open(dir)
 	v1 := mustParse(t, testDoc("R1: add"))
-	if _, err := s1.Append("init", "做加减", "", v1, "hi"); err != nil {
+	if _, err := s1.Append("init", "做加减", "", v1, "hi", nil); err != nil {
 		t.Fatal(err)
 	}
 	s2, err := Open(dir)
@@ -100,12 +100,12 @@ func TestSetHeadRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	v1 := mustParse(t, testDoc("R1: add"))
-	c1, err := store.Append("init", "a", "", v1, "hi")
+	c1, err := store.Append("init", "a", "", v1, "hi", []string{"spec: v1.0", "commits: 1"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	v2 := mustParse(t, testDoc("R1: add", "R2: multiply"))
-	c2, err := store.Append("feat", "b", v1, v2, "hi")
+	c2, err := store.Append("feat", "b", v1, v2, "hi", []string{"spec: v1.0", "commits: 2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,8 +119,8 @@ func TestSetHeadRollback(t *testing.T) {
 	if latest.ID != c1.ID {
 		t.Errorf("after rollback head=%s want %s", latest.ID, c1.ID)
 	}
-	if latest.Archive != v1 {
-		t.Error("after rollback archive should be v1")
+	if !strings.Contains(latest.Archive, "R1: add") || strings.Contains(latest.Archive, "R2: multiply") {
+		t.Errorf("after rollback archive should hold v1 only, got:\n%s", latest.Archive)
 	}
 	// c2 must remain readable
 	got, err := store.Get(c2.ID)

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"intent-lang/internal/archive"
 	"intent-lang/internal/il"
@@ -97,22 +98,34 @@ func retryProvider(p provider.Provider, f map[string]string) provider.Provider {
 	return provider.NewRetry(p, attempts)
 }
 
-func verifyMeta(before, after string) error {
-	if strings.TrimSpace(before) == "" {
-		return nil
+func verifyMeta(before, after string) error { return nil }
+
+func noMeta(text string) string {
+	if strings.TrimSpace(text) == "" {
+		return ""
 	}
-	b, err := il.Parse(before)
+	doc, err := il.Parse(text)
 	if err != nil {
-		return err
+		return text
 	}
-	a, err := il.Parse(after)
+	return doc.StripMeta().Canonical()
+}
+
+func validateIL(text string) []error {
+	doc, err := il.Parse(text)
 	if err != nil {
-		return err
+		return []error{err}
 	}
-	if !il.MetaUnchanged(b, a) {
-		return fmt.Errorf("LLM 修改了 META 段，非法")
+	return doc.Validate()
+}
+
+func buildMeta(commits int) []string {
+	return []string{
+		"spec: v1.0",
+		"created: " + time.Now().UTC().Format(time.RFC3339),
+		fmt.Sprintf("commits: %d", commits),
+		"deprecated: []",
 	}
-	return nil
 }
 
 func lenLog(store *archive.Store) int {
@@ -159,7 +172,9 @@ func chat(args []string) error {
 			break
 		}
 
-		resp, err := p.Complete(ctx, provider.Request{System: il.SpecPrompt, Archive: cur, User: msg})
+		beforeRaw := cur
+		beforeDoc := noMeta(beforeRaw)
+		resp, err := p.Complete(ctx, provider.Request{System: il.SpecPrompt, Archive: beforeDoc, User: msg})
 		if err != nil {
 			fmt.Println("!!", err)
 			continue
@@ -170,20 +185,19 @@ func chat(args []string) error {
 			fmt.Println("(档案未变更)")
 			continue
 		}
-		before := cur
 		after := resp.IntentUpdate
-		if err := verifyMeta(before, after); err != nil {
-			fmt.Println("!! META 被改动，本次变更已拒绝：", err)
+		if errs := validateIL(after); errs != nil {
+			fmt.Println("!! 输出不是合法档案，已拒绝：", errs)
 			continue
 		}
 		commits++
-		c, err := store.Append(archive.Summarize(before, after), msg, before, after, resp.Reply)
+		c, err := store.Append(archive.Summarize(beforeRaw, after), msg, beforeRaw, after, resp.Reply, buildMeta(commits))
 		if err != nil {
 			return err
 		}
-		cur = after
+		cur = c.Archive
 		fmt.Printf("--- intent_update（commit %s）---\n", c.ID)
-		fmt.Println(after)
+		fmt.Println(noMeta(c.Archive))
 	}
 
 	if cur != "" {
