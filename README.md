@@ -29,7 +29,8 @@
 | `docs/01-goals.md` | 问题、目标、非目标、术语、成功判据 |
 | `docs/02-scenarios.md` | 核心场景（计算器 golden path、跨模型、回滚等） |
 | `docs/03-design.md` | 架构、数据流、Provider 抽象、边界处理 |
-| `docs/il-spec.md` | 意图语言规范 v1.0（给 LLM 读的语言定义） |
+| `docs/il-spec.md` | 意图语言规范 v1.0（给 LLM 读的完整语言定义） |
+| `docs/il-keywords.md` | **关键词速查手册（给人类看）**：一词一例、一页总览 |
 | `docs/04-plan.md` | 里程碑 M0–M5、验收标准、风险 |
 
 ## 状态
