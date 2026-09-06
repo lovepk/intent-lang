@@ -38,6 +38,7 @@ func TestParseRealLLMVerifiedArchive(t *testing.T) {
 	for _, file := range []string{
 		"../../testdata/calculator_llm_verified.intent",
 		"../../testdata/demo_calc_archive.intent",
+		"../../testdata/compliance_password_archive.intent",
 	} {
 		data, err := os.ReadFile(file)
 		if err != nil {
