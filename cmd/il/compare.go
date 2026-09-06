@@ -1,3 +1,7 @@
+// Deprecated: compare was removed from the CLI (text similarity does not
+// measure intent consistency; use accept/lint instead). Kept only as
+// reference; unreachable from main dispatch.
+
 package main
 
 import (

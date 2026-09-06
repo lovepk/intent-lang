@@ -11,9 +11,11 @@ import (
 // validation or lint, categorized by message. This feeds back into spec v2
 // decisions (which constraints LLMs violate most).
 type ComplianceStats struct {
-	ValidateRejections map[string]int
-	LintFindings       map[string]int
-	Commits            int
+	ValidateRejections  map[string]int
+	LintFindings        map[string]int
+	LintErrorCount      int
+	LintSuggestionCount int
+	Commits             int
 }
 
 func newStats() *ComplianceStats {
@@ -36,6 +38,12 @@ func (s *ComplianceStats) noteLint(doc *il.Doc) {
 			key += " " + d.ID
 		}
 		s.LintFindings[key]++
+		switch d.Severity {
+		case il.SevError:
+			s.LintErrorCount++
+		default:
+			s.LintSuggestionCount++
+		}
 	}
 }
 
@@ -76,8 +84,10 @@ func (s *ComplianceStats) render() string {
 		fmt.Fprintf(&b, "  %s: %d\n", k, v)
 	}
 	b.WriteString("一致性 Lint 发现(按位置):\n")
-	if len(s.LintFindings) == 0 {
+	if s.LintErrorCount == 0 && s.LintSuggestionCount == 0 {
 		b.WriteString("  无\n")
+	} else {
+		fmt.Fprintf(&b, "  合计 %d error / %d suggestion\n", s.LintErrorCount, s.LintSuggestionCount)
 	}
 	for k, v := range s.LintFindings {
 		fmt.Fprintf(&b, "  %s: %d\n", k, v)

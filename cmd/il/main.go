@@ -22,7 +22,7 @@ func main() {
 
 func run() error {
 	if len(os.Args) < 2 {
-		return fmt.Errorf("usage: il <chat|verify|repro|compare|accept|lint|demo|log|show|rollback> [options]")
+		return fmt.Errorf("usage: il <chat|verify|repro|accept|lint|demo|log|show|rollback> [options]")
 	}
 	cmd := os.Args[1]
 
@@ -36,7 +36,7 @@ func run() error {
 	case "repro":
 		return repro(os.Args[2:])
 	case "compare":
-		return compare(os.Args[2:])
+		return fmt.Errorf("compare 已废弃：文本相似度不能衡量意图一致性。请用 accept（ACCEPT 行为验收）或 lint")
 	case "accept":
 		return accept(os.Args[2:])
 	case "lint":

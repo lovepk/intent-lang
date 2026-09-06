@@ -131,7 +131,10 @@ const LintPrompt = `你是"意图档案编译器"的语义复查层。给你一�
 3. CONTRACT 内部是否自相矛盾（同一条或不同条之间互相冲突）。
 4. FIDELITY 声明与实际内容是否明显不符（如声明 artifact 却没有要求逐字复现的代码块；声明 behavior 却大量点名锁定实现细节）。
 5. OPEN 的 default 是否与已定契约明显冲突。
-6. SNIPPET 是否与 CONTRACT 一致（过期）：若对话演进后 CONTRACT 改了某行为，但 SNIPPET 里锁定的代码仍是旧逻辑、与当前 CONTRACT 冲突，报出来（suggestion：提示 SNIPPET 可能过期需更新或删除）。若 SNIPPET 只是一段与 CONTRACT 不相关的辅助代码且不冲突，不要报。
+6. SNIPPET 锁定代码是否与 CONTRACT 行为描述冲突：
+   - 若 SNIPPET 代码实现的行为与 CONTRACT 明确要求相反（如 CONTRACT 说错误写 stderr，SNIPPET 却是 print 到 stdout；或 CONTRACT 说不做除法，SNIPPET 却含除法逻辑）→ error：复现端会照 SNIPPET 抄出违背契约的代码。
+   - 若只是 SNIPPET 与 CONTRACT 关联弱、可能过期但无直接冲突 → suggestion（提示核对）。
+   - 若 SNIPPET 是与 CONTRACT 不冲突的辅助实现片段，不要报。
 
 severity 判定：
 - 只有当矛盾会导致【复现端无法同时满足两条规则】时才标 error（例如：一条说不支持 X，另一条/验收用例却在测 X；reject 了 X 却又要求 X）。

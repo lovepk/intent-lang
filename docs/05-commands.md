@@ -3,7 +3,7 @@
 > 构建/运行：`go run ./cmd/il <命令> [选项]`（或先 `go build -o intent-lang.exe ./cmd/il` 再用 `il <命令>`）。
 > 真实调用需 `.env` 提供 `DEEPSEEK_API_KEY_A/B`；`--key A|B` 切换两个凭据充当 LLM-A / LLM-B。
 
-## 一、命令总览（10 个）
+## 一、命令总览（9 个）
 
 | 分组 | 命令 | 作用 | 常用参数 |
 |---|---|---|---|
@@ -12,7 +12,6 @@
 | | `lint` | 语言体检：确定性结构检查；`--llm` 追加 LLM 语义复查 | `--archive` `--key`(llm) |
 | **复现** | `repro` | 失忆复现：仅凭档案重建产物 | `--key` `--archive` `--out` |
 | **验收** | `accept` | ACCEPT 行为验收：LLM 把验收用例翻译成测试并运行 | `--key` `--archive` `--artifact` |
-| | `compare` | 两产物形态对比（LCS diff + 相似度） | `--ref` `--cand` `--threshold` `--fidelity` |
 | **演示** | `demo` | 端到端 golden path：key A 建档 → key B 复现 → 验收（一条命令跑全流程） | `--script` `--repo` |
 | **档案管理** | `log` | 查看 commit 历史 | `--repo` |
 | | `show` | 查看某条 commit 详情（默认最新） | `--repo` `[id]` |
@@ -52,25 +51,27 @@ il chat --key A --repo .il
 - 变更受**闸门**保护：模型改了却没在 `declared_changes` 里声明的条目会被拒绝落库。
 - 无关消息（闲聊）不产生 commit。
 
-### 2. `verify` — 单轮无副作用预览
+### 2. `verify` — 单轮无副作用预览（v2）
 
-不进仓库、不写 commit，直接看"给定这条需求，模型会怎样重写档案"。用于试需求、验证遵守度。
+不进仓库、不写 commit，直接看"给定这条需求，模型会怎样重写档案"。用于试需求、验证遵守度。v2 起支持从仓库多档案读取、并模拟变更闸门预判。
 
 ```sh
-il verify --key A --archive calc.il --msg "加上乘法"
-# 输出 reply + 模型重写后的完整档案（合法才显示）
+il verify --key A --archive calc.il --msg "加上乘法"          # 单文件
+il verify --key A --repo .il --name app --msg "加上除法"       # 仓库多档案
+# 输出: reply + 判定（可通过变更闸门 / 会被拦截）+ 模型重写后的完整档案
 ```
 
-> 与 `chat` 的区别：`chat` 会落库成 commit，`verify` 只预览不落库。
+> 与 `chat` 的区别：`chat` 会落库成 commit，`verify` 只预览不落库——模型若改了没声明的条目，verify 会提示"经 chat 提交会被拒绝"。
 
 ### 3. `lint` — 语言体检
 
 两层检查：
-- **确定性结构 lint**：SNIPPET/FIDELITY 不匹配、META.spec 版本、OPEN 空 default、悬空引用、OPEN 已收敛等（快、零成本）。
-- `--llm` **LLM 语义复查**：找需要理解力的矛盾（如 ACCEPT 测被 CONTRACT 否定的功能），领域无关。
+- **确定性结构 lint**：SNIPPET/FIDELITY 不匹配、META.spec 版本、OPEN 空 default、悬空引用、OPEN 已收敛、引用出现在禁止段、最小档案等（快、零成本）。
+- `--llm` **LLM 语义复查**：找需要理解力的矛盾（ACCEPT 与被否功能冲突、SNIPPET 锁定代码与 CONTRACT 冲突、引用一致性），领域无关。
 
 ```sh
 il lint --archive calc.il              # 结构检查
+il lint --repo .il --name app          # 检查仓库内某档案
 il lint --llm --key A --archive calc.il # + LLM 复查
 ```
 
@@ -93,13 +94,10 @@ il accept --repo .il --name app --artifact app.py
 # 依赖本机 python（验收脚本以标准库跑产物）；解释器可用 IL_PYTHON 覆盖
 ```
 
-### 6. `compare` — 产物形态对比
+### 6. `compare` — 已废弃
 
-行级 LCS diff + 相似度。默认 `--fidelity structure` 才做阈值判定；`behavior` 层仅提示改用 ACCEPT 行为验收。
-
-```sh
-il compare --ref a.py --cand b.py --threshold 0.95 --fidelity structure
-```
+> ⚠️ **已废弃**：文本相似度不能衡量意图一致性（实测同一档案不同模型复现，文本相似度可低至 0.12 但行为全对）。
+> 衡量一致性的正确工具是：`accept`（ACCEPT 行为验收）与 `lint`。命令入口仍保留但会提示废弃。
 
 ### 7. `demo` — 端到端一键演示
 

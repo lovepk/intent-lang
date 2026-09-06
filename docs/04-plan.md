@@ -129,7 +129,7 @@
 - `internal/similarity`：复现相似度报告（M3）。
 - META.deprecated 的 diff 自动计算（当前模型直接删条目，Agent 尚不反写 deprecated 列表）。
 
-## M7 — 多档案引用（进行中：语言侧核心已完成）
+## M7 — 多档案引用（已完成）
 
 - ✅ 语言语法：<ref: name#id@ver> 成为 v2.0 语法元素（il-spec §2.6）；限 CONTRACT/ACCEPT/ANCHORS。
 - ✅ il.ScanRefs/ScanRefsAll + lint 规则（引用出现在禁止段 → error）。
@@ -140,6 +140,12 @@
 - ✅ 真实验证：建 common（共享错误规则）→ 建 app 引用 <ref: common#R1@1.0> → repro app 展开引用 → 产物实现 common 规则，行为验收 3/3 通过。
 - ✅ accept 支持 --repo/--name（从仓库读并展开引用再生成验收脚本）。
 - 待做：跨仓库依赖（远期）。
+
+**工具纵深收尾**
+- ✅ verify 升级对齐 v2：支持 --repo/--name（仓库多档案），输出判定（可通过闸门/会被拦截）+ 完整预览；真实验证能暴露模型非法输出（如 DECISIONS 编号重复）。
+- ✅ compare 废弃：文本相似度不能衡量意图一致性，命令入口保留但提示改用 accept/lint（03-design/05-commands 同步）。
+- ✅ stats 补齐：lint 计数分 error/suggestion 汇总。
+- ✅ lint --llm SNIPPET 检查方向校准：明确"SNIPPET 代码与 CONTRACT 冲突→error"；真实验证能抓 print(stdout) vs R1(stderr) 冲突，并在 calculator fixture 上发现 SNIPPET 只有 apply 而 ACCEPT 测 add 的真实缺陷。
 
 ## 展望（超出当前范围，仅记录）
 
