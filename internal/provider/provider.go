@@ -29,9 +29,10 @@ type Finding struct {
 }
 
 type Response struct {
-	Reply        string
-	IntentUpdate string
-	Findings     []Finding
+	Reply           string
+	IntentUpdate    string
+	Findings        []Finding
+	DeclaredChanges []string
 }
 
 type Provider interface {

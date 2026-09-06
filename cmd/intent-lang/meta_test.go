@@ -85,3 +85,31 @@ func TestArtifactExt(t *testing.T) {
 		}
 	}
 }
+
+func TestUndeclaredChanges(t *testing.T) {
+	before := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\n  R2: b\n"
+	after := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\n  R2: b2\n"
+	// fully declared -> no violation
+	if got := undeclaredChanges(before, after, []string{"R2"}); len(got) != 0 {
+		t.Errorf("full declaration should pass, got %v", got)
+	}
+	// undeclared -> caught
+	if got := undeclaredChanges(before, after, []string{"R1"}); len(got) != 1 || got[0] != "R2" {
+		t.Errorf("undeclared R2 should be caught, got %v", got)
+	}
+	// empty declared -> everything changed is flagged
+	if got := undeclaredChanges(before, after, nil); len(got) != 1 {
+		t.Errorf("nil declaration should flag all changes, got %v", got)
+	}
+	// extra declared ids that did not change are harmless
+	if got := undeclaredChanges(before, after, []string{"R2", "R9"}); len(got) != 0 {
+		t.Errorf("extra declared ids should be harmless, got %v", got)
+	}
+}
+
+func TestUndeclaredChangesNoChange(t *testing.T) {
+	src := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\n"
+	if got := undeclaredChanges(src, src, nil); len(got) != 0 {
+		t.Errorf("no change should pass even with nil declaration, got %v", got)
+	}
+}

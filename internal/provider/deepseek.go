@@ -142,8 +142,9 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 	}
 
 	var out struct {
-		Reply        string `json:"reply"`
-		IntentUpdate string `json:"intent_update"`
+		Reply           string   `json:"reply"`
+		IntentUpdate    string   `json:"intent_update"`
+		DeclaredChanges []string `json:"declared_changes"`
 	}
 	if err := json.Unmarshal([]byte(content), &out); err != nil {
 		return Response{}, fmt.Errorf("deepseek: model did not return valid JSON: %w\nraw: %s", err, truncate(content, 800))
@@ -170,7 +171,7 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 		out.IntentUpdate = canonDoc.Canonical()
 	}
 
-	return Response{Reply: out.Reply, IntentUpdate: out.IntentUpdate}, nil
+	return Response{Reply: out.Reply, IntentUpdate: out.IntentUpdate, DeclaredChanges: out.DeclaredChanges}, nil
 }
 
 func truncate(s string, n int) string {

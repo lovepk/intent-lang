@@ -182,6 +182,14 @@ func chat(args []string) error {
 				stats.noteValidate(errs)
 				continue
 			}
+			// 变更闸门：模型声明了改哪些条目；机器 diff 若发现"改了却没声明"，
+			// 视为越权改动，拒绝落库（确定性守卫，保护已消歧事实不被顺手改动）。
+			if over := undeclaredChanges(beforeRaw, after, resp.DeclaredChanges); len(over) > 0 {
+				fmt.Println("!! 变更闸门拒绝：模型改动以下条目但未在 declared_changes 中声明：", over)
+				fmt.Println("   已消歧事实可能被顺手改动。请重新表达需求让模型如实声明改动，或人工核对。")
+				stats.noteValidate([]error{fmt.Errorf("undeclared changes: %v", over)})
+				continue
+			}
 			commits := lenLog(store) + 1
 			deprecated = nextDeprecated(deprecated, beforeRaw, after)
 			c, err := store.Append(archive.Summarize(beforeRaw, after), msg, beforeRaw, after, resp.Reply,

@@ -34,12 +34,14 @@ ANCHORS
   in: <输入示例1>   out: <输出示例1>
   style: <命名/结构/风格约束一句话>
 
-SNIPPET <标签>           （仅当 FIDELITY=structure|artifact，需锁定关键实现时）
-  <原样、不可折叠的实现/布局片段>
-
 ACCEPT
   A1: <可判定真假的验收用例>
   ...
+
+分工：能写成"输入X输出Y"的可判定断言 → 写进 ACCEPT；ACCEPT 给不出机器可判的形态、但你需要复现端"照着做"的样板 → 才放 ANCHORS in/out。同一行为不要两处重复写。
+
+SNIPPET <标签>           （仅当 FIDELITY=structure|artifact，需锁定关键实现时）
+  <原样、不可折叠的实现/布局片段>
 
 DECISIONS
   D1: <一句话决定>     reject: <这次讨论中明确被否定的备选方案>     due: <起因，一句话>
@@ -62,7 +64,14 @@ OPEN
 
 ## 输出格式（模式一）
 只输出一个 JSON 对象，不要包含 JSON 外的任何文字：
-{"reply": "给用户的中文回答", "intent_update": "完整档案文本或空字符串"}
+{"reply": "给用户的中文回答", "intent_update": "完整档案文本或空字符串", "declared_changes": ["R2", "D1"]}
+
+declared_changes 是【诚实声明】：
+- 列出你这次实际新增/删除/改动了正文的条目编号（R/A/D/? 前缀），包括新增的编号。
+- 覆盖所有段：加功能改了 CONTRACT 却顺带同步修改了 ACCEPT/DECISIONS/OPEN，那些被同步改动的条目【也必须列入】——不是只有"主改动"才算改动。
+- 只列你真的动了正文的条目。**没有动的绝不能写进去，动了的绝不能漏掉。**
+- 系统会拿它与机器 diff 逐条比对：改了却没声明 = 越权改动，会被拒绝。
+- intent_update 为空（本次不涉及档案）时，declared_changes 必须是空数组。
 `
 
 // ReproPrompt is injected when an LLM must rebuild the product from an

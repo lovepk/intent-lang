@@ -115,3 +115,20 @@ func artifactExt(target string) string {
 		return ""
 	}
 }
+
+// undeclaredChanges returns entry ids that were actually changed but not listed
+// in the model's declared_changes (the "越权改动" gate).
+func undeclaredChanges(beforeText, afterText string, declared []string) []string {
+	d := il.CompareEntries(beforeText, afterText)
+	declaredSet := map[string]bool{}
+	for _, id := range declared {
+		declaredSet[id] = true
+	}
+	var out []string
+	for _, id := range d.Changed() {
+		if !declaredSet[id] {
+			out = append(out, id)
+		}
+	}
+	return out
+}
