@@ -116,19 +116,35 @@ func artifactExt(target string) string {
 	}
 }
 
-// undeclaredChanges returns entry ids that were actually changed but not listed
-// in the model's declared_changes (the "越权改动" gate).
-func undeclaredChanges(beforeText, afterText string, declared []string) []string {
+// UndeclaredChange is an entry that changed but was not in declared_changes.
+type UndeclaredChange struct {
+	ID   string
+	Kind string // "added" | "removed" | "modified"
+}
+
+// undeclaredChanges returns entries that actually changed but were not listed
+// in the model's declared_changes (the "越权改动" gate), with change kind.
+// When there is no previous archive (first build), nothing can be "改既有事实",
+// so the gate is skipped.
+func undeclaredChanges(beforeText, afterText string, declared []string) []UndeclaredChange {
+	if strings.TrimSpace(beforeText) == "" {
+		return nil
+	}
 	d := il.CompareEntries(beforeText, afterText)
 	declaredSet := map[string]bool{}
 	for _, id := range declared {
 		declaredSet[id] = true
 	}
-	var out []string
-	for _, id := range d.Changed() {
-		if !declaredSet[id] {
-			out = append(out, id)
+	var out []UndeclaredChange
+	add := func(ids []string, kind string) {
+		for _, id := range ids {
+			if !declaredSet[id] {
+				out = append(out, UndeclaredChange{ID: id, Kind: kind})
+			}
 		}
 	}
+	add(d.Added, "added")
+	add(d.Modified, "modified")
+	add(d.Removed, "removed")
 	return out
 }

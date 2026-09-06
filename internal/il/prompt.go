@@ -61,6 +61,7 @@ OPEN
 4. 段语义：加功能→CONTRACT 新 R 并补 ACCEPT；用户给出否定（"不要X"）→写 "不做 X" 或新增 DECISIONS reject X；更细形态需求→补 ANCHORS/SNIPPET；还没定→OPEN 且必须带 default。
 5. 冲突处理：用户新意图与已有 R 冲突→修订该 R 并同步改 ACCEPT 与 DECISIONS，不允许档案里残留自相矛盾的两条。
 6. FIDELITY 随需求升降：从纯功能走向要 GUI/布局/命名一致时升到 structure/artifact 并补 SNIPPET。
+7. 顺带改动必须披露：若你除了响应用户本次需求外，还修订了与本次需求无明显关系的既有条目（如顺手规范化某条表述、修了个旧 bug、调整了措辞），必须在 reply 里明确说明改了哪条、为什么。宁可在 reply 多说一句，也不要把这类改动藏在 intent_update 里被系统 diff 发现后拒绝。
 
 ## 输出格式（模式一）
 只输出一个 JSON 对象，不要包含 JSON 外的任何文字：
@@ -121,6 +122,7 @@ const LintPrompt = `你是"意图档案编译器"的语义复查层。给你一�
 3. CONTRACT 内部是否自相矛盾（同一条或不同条之间互相冲突）。
 4. FIDELITY 声明与实际内容是否明显不符（如声明 artifact 却没有要求逐字复现的代码块；声明 behavior 却大量点名锁定实现细节）。
 5. OPEN 的 default 是否与已定契约明显冲突。
+6. SNIPPET 是否与 CONTRACT 一致（过期）：若对话演进后 CONTRACT 改了某行为，但 SNIPPET 里锁定的代码仍是旧逻辑、与当前 CONTRACT 冲突，报出来（suggestion：提示 SNIPPET 可能过期需更新或删除）。若 SNIPPET 只是一段与 CONTRACT 不相关的辅助代码且不冲突，不要报。
 
 severity 判定：
 - 只有当矛盾会导致【复现端无法同时满足两条规则】时才标 error（例如：一条说不支持 X，另一条/验收用例却在测 X；reject 了 X 却又要求 X）。

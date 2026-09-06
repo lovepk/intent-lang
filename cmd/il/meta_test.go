@@ -93,9 +93,10 @@ func TestUndeclaredChanges(t *testing.T) {
 	if got := undeclaredChanges(before, after, []string{"R2"}); len(got) != 0 {
 		t.Errorf("full declaration should pass, got %v", got)
 	}
-	// undeclared -> caught
-	if got := undeclaredChanges(before, after, []string{"R1"}); len(got) != 1 || got[0] != "R2" {
-		t.Errorf("undeclared R2 should be caught, got %v", got)
+	// undeclared -> caught with kind
+	got := undeclaredChanges(before, after, []string{"R1"})
+	if len(got) != 1 || got[0].ID != "R2" || got[0].Kind != "modified" {
+		t.Errorf("undeclared R2 should be caught as modified, got %+v", got)
 	}
 	// empty declared -> everything changed is flagged
 	if got := undeclaredChanges(before, after, nil); len(got) != 1 {
@@ -111,5 +112,14 @@ func TestUndeclaredChangesNoChange(t *testing.T) {
 	src := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\n"
 	if got := undeclaredChanges(src, src, nil); len(got) != 0 {
 		t.Errorf("no change should pass even with nil declaration, got %v", got)
+	}
+}
+
+func TestUndeclaredChangesFirstBuildExempt(t *testing.T) {
+	// First build from empty: everything is a new entry; gate is skipped even
+	// with an empty declaration.
+	after := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\n  R2: b\nACCEPT\n  A1: ok\n"
+	if got := undeclaredChanges("", after, nil); len(got) != 0 {
+		t.Errorf("first build should be exempt from gate, got %v", got)
 	}
 }

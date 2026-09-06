@@ -184,6 +184,33 @@ func (d *Doc) Lint() []Diagnostic {
 		}
 	}
 
+	// Minimum viable archive: reproduction needs behavior + acceptance.
+	contract := d.Section("CONTRACT")
+	accept := d.Section("ACCEPT")
+	if contract == nil || len(contract.Entries()) == 0 {
+		out = append(out, Diagnostic{
+			Severity: SevError,
+			Section:  "CONTRACT",
+			Msg:      "CONTRACT 为空：产物没有任何可落实的行为",
+			Fix:      "至少写一条已消歧的行为约束（R1），否则复现端无从产出",
+		})
+	} else if len(contract.Entries()) < 2 {
+		out = append(out, Diagnostic{
+			Severity: SevSuggestion,
+			Section:  "CONTRACT",
+			Msg:      "CONTRACT 只有一条，档案过薄",
+			Fix:      "补足边界行为（错误输入、异常、退出条件等），让产物不至于过度简化",
+		})
+	}
+	if accept == nil || len(accept.Entries()) == 0 {
+		out = append(out, Diagnostic{
+			Severity: SevSuggestion,
+			Section:  "ACCEPT",
+			Msg:      "没有 ACCEPT 验收用例：行为一致与否无法判定",
+			Fix:      "为核心行为补 A<n> 验收用例，否则复现只能靠猜",
+		})
+	}
+
 	return out
 }
 

@@ -63,12 +63,48 @@ func TestLintOpenEmptyDefault(t *testing.T) {
 
 func TestLintClean(t *testing.T) {
 	src := "INTENT x@1\nKIND program\nFIDELITY structure\nTARGET py\n" +
-		"CONTRACT\n  R1: 支持加法和减法\nACCEPT\n  A1: add(1,2)==3\n  A2: subtract(3,1)==2\n" +
+		"CONTRACT\n  R1: 支持加法和减法\n  R2: 输入非法时提示错误并继续\nACCEPT\n  A1: add(1,2)==3\n  A2: subtract(3,1)==2\n" +
 		"DECISIONS\n  D1: 只支持加减     reject: 乘除     due: 简化\nSNIPPET s\n  def f(): pass\nMETA\n  spec: v1.0\n"
 	doc := parseOK(t, src)
 	ds := doc.Lint()
 	if len(ds) != 0 {
 		t.Errorf("expected clean lint, got %+v", ds)
+	}
+}
+
+func TestLintThinArchive(t *testing.T) {
+	src := "INTENT x@1\nKIND program\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: 只做一件事\n"
+	doc := parseOK(t, src)
+	ds := doc.Lint()
+	gotThin, gotNoAccept := false, false
+	for _, d := range ds {
+		if d.Section == "CONTRACT" && strings.Contains(d.Msg, "过薄") {
+			gotThin = true
+		}
+		if d.Section == "ACCEPT" && strings.Contains(d.Msg, "验收") {
+			gotNoAccept = true
+		}
+	}
+	if !gotThin {
+		t.Errorf("expected thin-archive suggestion, got %+v", ds)
+	}
+	if !gotNoAccept {
+		t.Errorf("expected no-ACCEPT suggestion, got %+v", ds)
+	}
+}
+
+func TestLintEmptyContract(t *testing.T) {
+	src := "INTENT x@1\nKIND program\nFIDELITY behavior\nTARGET py\nACCEPT\n  A1: ok\n"
+	doc := parseOK(t, src)
+	ds := doc.Lint()
+	found := false
+	for _, d := range ds {
+		if d.Section == "CONTRACT" && d.Severity == SevError {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected empty-contract error, got %+v", ds)
 	}
 }
 
