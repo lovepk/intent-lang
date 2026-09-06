@@ -108,24 +108,19 @@ commit id: c-3   B@v1.0   "feat: gui tkinter grid"    ←用户: 改GUI
 
 ```go
 type Provider interface {
-    // Complete 执行一次对话补全；实现需支持"多消息上下文"。
+    // Complete 执行一次对话补全；装配内容由 Agent 负责。
     Complete(ctx context.Context, req Request) (Response, error)
 }
 
 type Request struct {
-    System string      // 系统提示：IL 规范 + 角色约定
-    History []Message  // 保留的消息（会话内）
-    User    string     // 当前用户消息（对话模式）或复现指令
-}
-
-type Message struct {
-    Role string // "user" | "assistant"
-    Text string
+    System  string // 系统提示：IL 规范 + 角色约定
+    Archive string // 当前最新档案 B（对话模式=最新版；复现模式=目标版）
+    User    string // 当前用户消息（对话模式）或复现指令
 }
 
 type Response struct {
     Reply        string // 通道 A
-    IntentUpdate string // 通道 B：意图语言文本，可为空
+    IntentUpdate string // 通道 B：完整的新档案文本（全量重写），可为空
 }
 ```
 
@@ -133,10 +128,11 @@ type Response struct {
 
 第一阶段 `mock` Provider 满足以下性质（使离线可复现且行为可解释）：
 
-- 内置一个**确定性产物生成器**（如：根据 B 的 CONTRACT 生成可运行 Python 计算器文本）。
-- 对话模式下，模拟"像程序员改代码"：从用户消息中识别意图动词与名词（极简规则，如 `加`/`做`/`改成` + 功能词），把变更体现为对 B 对应段的修改，同时产出 `reply` 与 `IntentUpdate`。
-- 确定性：相同输入序列 → 相同输出。可用固定 seed 的测试保证。
-- 提供"两个不同 mock 实例"的能力，模拟 LLM-A / LLM-B 的角色差异（如命名风格参数不同），以便验证档案可移植性不依赖单一模型细节。
+- 内置一个**确定性的计算器领域转换器**：从用户消息识别意图（如 `加/乘/界面` 等），把变更映射为对档案各段的修改（追加 `R`、补 `ACCEPT`、更新 `FIDELITY`/`TARGET`、记 `DECISIONS`）。
+- **全量重写**：每次响应输出完整的新档案文本（满足 il-spec §4 规则 1）；Agent 负责 diff 与 commit。
+- 自校验：输出前解析并 `Validate()`，产出非法档案即报错返回。
+- 确定性：纯规则、无随机；相同输入序列 → 相同输出（有测试保证）。
+- 通过 `NewMock(name)` 可创建多个不同名实例（模拟 LLM-A / LLM-B），为 M3 跨模型复现验证做准备。
 
 ## 5. 意图语言 (IL) 概要
 

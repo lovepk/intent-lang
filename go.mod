@@ -1,4 +1,4 @@
-﻿module intent-lang
+module intent-lang
 
 go 1.26
 

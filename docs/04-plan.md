@@ -2,7 +2,7 @@
 
 > 原则：文档先行 → mock 闭环先跑通 → 接口稳定后再接真实 LLM。每个里程碑都有可验证的验收标准。
 
-## M0 — 文档与骨架（当前）
+## M0 — 文档与骨架（已完成）
 
 **产出**
 - 目录骨架、`go.mod`。
@@ -12,18 +12,18 @@
 **验收**
 - 文档评审通过；计算器示例档案可作为统一测试输入。
 
-## M1 — IL 与 mock Provider 基础
+## M1 — IL 与 mock Provider 基础（已完成）
 
 **内容**
-- `internal/il`：档案的解析（分段、编号抽取）、轻校验、规范化输出（供 diff）、`version` 提取。校验覆盖 il-spec §6：头四段齐全、`FIDELITY` 取值合法、`CONTRACT` 编号唯一且递增、`OPEN` 均带 `default:`、正文无空段、`META` 未被动过。
-- `internal/provider`：`Provider` 接口 + `mock` 实现。
-- mock 行为：确定性；能根据用户消息更新档案并产出 reply；遵守 il-spec §4 编辑规则（全量重写、改动最小化）。
+- `internal/il`：档案的解析（分段、编号抽取）、轻校验、规范化输出（供 diff）。校验覆盖 il-spec §6：头四段齐全、`FIDELITY` 取值合法、`CONTRACT` 编号唯一且递增、`OPEN` 均带 `default:`、正文无空段、正文去重。
+- `internal/provider`：`Provider` 接口（Request{System, Archive, User} / Response{Reply, IntentUpdate}）+ `mock` 实现。
+- mock 行为：确定性；根据用户消息更新档案并产出 reply；遵守 il-spec §4（全量重写、校验自检）。可 `NewMock(name)` 建多实例。
 
 **验收**
-- Go 单元测试：给定消息序列，mock 更新档案正确、两次运行结果完全一致（确定性）。
+- Go 单元测试通过：il 解析/校验/规范化 + mock 确定性 + 计算器消息序列更新 + 无关消息不产生 commit + 无重复功能。
 - 非法档案被 `il` 校验拒绝，并有对应测试。
 
-## M2 — 对话内核与档案仓库
+## M2 — 对话内核与档案仓库（当前）
 
 **内容**
 - `internal/agent`：装配（规范 + 最新 B）→ 调 provider → 校验 → 更新 → commit。
