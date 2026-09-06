@@ -34,6 +34,26 @@ func TestParseValidArchive(t *testing.T) {
 	}
 }
 
+func TestParseRealLLMVerifiedArchive(t *testing.T) {
+	data, err := os.ReadFile("../../testdata/calculator_llm_verified.intent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := Parse(string(data))
+	if err != nil {
+		t.Fatalf("parse real LLM archive: %v", err)
+	}
+	if errs := doc.Validate(); len(errs) != 0 {
+		t.Errorf("real LLM archive must pass validation, got: %v", errs)
+	}
+	if doc.Header.Fidelity == "" {
+		t.Error("real LLM archive missing FIDELITY")
+	}
+	if sec := doc.Section("DECISIONS"); sec == nil || len(sec.Lines) == 0 {
+		t.Error("real LLM archive should carry DECISIONS")
+	}
+}
+
 func TestCanonicalRoundTrip(t *testing.T) {
 	src := loadTestDoc(t)
 	doc, err := Parse(src)

@@ -55,14 +55,28 @@
 **验收**
 - 新人按 README 可在离线状态复现 demo 与全部报告。
 
-## M5 —（后续，接真实 LLM）
+## M5 — 真实 LLM 接入（进行中，已提前验证核心闭环）
 
-**内容**
-- `provider/openai` 等真实实现；上下文注入规范文本；`IntentUpdate` 解析与容错（3 次重试降级）。
-- 真实模型下重新跑场景 1/2，观察相似度并据此修订 IL 语法（哪些约束写进 CONTRACT/ANCHORS 才能稳住真实模型）。
+**已完成**
+- `provider/deepseek.go`：DeepSeek（OpenAI 兼容）Provider；`Mode=write` 时强制 JSON 双通道输出，`Mode=repro` 时输出纯产物；返回前对 intent_update 做 il 解析+校验+规范化。
+- 密钥经 `.env`（已 gitignore）承载，经 `cmd/intent-lang/dotenv.go` 加载，不入库。
+- 真实闭环验证（deepseek-chat，两个 key 充当 A/B 两模型）：
+  1. **双通道写档案**：3 轮对话（建加减 → 加乘 → 加除/除零处理），模型只读【当前档案+需求】，增量重写档案正确：编号递增 R1→R6、ACCEPT 同步、DECISIONS 记录否决、OPEN 更新 default、META.commits 递增。全程无需历史消息 → 验证"档案即记忆"。
+  2. **失忆复现**：删会话后用 key B 仅凭最终档案重建出可运行的 Python 计算器；ACCEPT 黑盒用例全数通过（含负号解析、除零提示、非法输入、多运算符拒绝、向下取整遵守 OPEN.default）。
+- 证据归档：`testdata/calculator_llm_verified.intent`（真实 LLM 档案）、`testdata/artifact_verified.py`（复现产物）；`il` 增加回归测试强制真实档案必须通过校验。
+- CLI：`chat`（交互双通道）/ `verify`（单轮遵守度检查）/ `repro`（档案→产物重建）。
 
-**验收**
-- 真实 LLM 下"失忆复现"相似度报告产出；记录与 mock 的差异，驱动 `il-spec` 修订。
+**实测发现（驱动 il-spec 修订）**
+1. 模型遵守强模板良好；会把不明确点主动放入 OPEN 并给 default（设计意图被模型理解）。
+2. **无档案时模型会幻觉历史**（第二次验证未带 archive，模型杜撰 commits:7 与不存在的先加减后乘）——档案为空时必须显式引导从零建档，不能装作有续写。
+3. 复现产物偶尔带 ```python 围栏 → ReproPrompt 已加"不得用围栏包裹"。
+4. SNIPPET 内代码缩进被档案规范化重整为统一 2 空格（无碍 Python 但需留意其他语言）。
+5. OPEN.default 会被复现端忠实遵守（5/2 取整），符合设计。
+
+**待办**
+- IntentUpdate 非法时的重试/降级（当前直接报错返回）。
+- `repro` 对 artifact 围栏做防御性清洗。
+- mock 补充 repro 模式（离线复现演示）。
 
 ## 展望（超出当前范围，仅记录）
 

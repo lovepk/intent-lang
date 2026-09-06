@@ -1,3 +1,10 @@
 bin/
 *.exe
 
+.env
+*.log
+
+__pycache__/
+*.pyc
+artifact.py
+archive.last.intent

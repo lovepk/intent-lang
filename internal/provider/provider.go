@@ -5,10 +5,18 @@ import (
 	"time"
 )
 
+type Mode string
+
+const (
+	ModeWrite Mode = "write"
+	ModeRepro Mode = "repro"
+)
+
 type Request struct {
 	System  string
 	Archive string
 	User    string
+	Mode    Mode
 }
 
 type Response struct {

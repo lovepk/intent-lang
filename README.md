@@ -33,18 +33,26 @@
 
 ## 状态
 
-- 当前：**M0** —— 文档与骨架。
-- 技术栈：Go。第一阶段使用 mock LLM（离线可复现），真实 LLM 以可替换接口接入（`internal/provider`）。
+- M0 文档骨架 ✅ / M1 IL+mock ✅ / M5 真实 LLM 核心闭环已提前验证 ✅（详见 `docs/04-plan.md`）。
+- 技术栈：Go。Provider 可替换：`mock`（离线确定性）或 `deepseek`（真实）。
+- 真实调用需 `.env` 提供 `DEEPSEEK_API_KEY_A/B`（文件已 gitignore，不入库）。
 
 ## 用法
 
-（M2–M4 完成后补齐）预期命令：
-
 ```sh
-go run ./cmd/intent-lang chat            # 交互式双通道对话
-go run ./cmd/intent-lang reproduce -b b@vN   # 失忆复现 + 相似度报告
-go run ./cmd/intent-lang log / rollback <id> # 档案版本管理
+go run ./cmd/intent-lang chat  --provider deepseek --key A
+    # 交互式双通道对话：输入需求 → reply + 档案增量更新（每轮打印完整新档案）
+go run ./cmd/intent-lang verify --provider deepseek --key A --msg "加上乘法"
+    # 单轮遵守度检查：看模型对这份档案的重写是否合法
+go run ./cmd/intent-lang repro --provider deepseek --key B --archive archive.last.intent --out artifact.py
+    # 失忆复现：仅凭档案重建产物（chat 结束时自动写出 archive.last.intent）
 ```
+
+离线可跑 `--provider mock`（确定性）。CLI 会按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。
+
+## 验证证据
+
+`testdata/calculator_llm_verified.intent`：真实 deepseek 三轮对话产出的档案；`testdata/artifact_verified.py`：key B 仅凭该档案重建的产物，ACCEPT 黑盒用例全数通过。
 
 ## 路线
 
