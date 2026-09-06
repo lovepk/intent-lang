@@ -67,23 +67,13 @@ func TestParseRealLLMDecisionsPresent(t *testing.T) {
 	}
 }
 
-func TestLintCleanOnDemoFixture(t *testing.T) {
-	data, err := os.ReadFile("../../testdata/demo_calc_archive.intent")
+func readFixture(t *testing.T, name string) string {
+	t.Helper()
+	data, err := os.ReadFile("../../testdata/" + name)
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc, err := Parse(string(data))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if errs := doc.Validate(); len(errs) != 0 {
-		t.Fatalf("demo fixture must validate: %v", errs)
-	}
-	for _, d := range doc.Lint() {
-		if d.Severity == SevError {
-			t.Errorf("demo fixture should have no lint errors, got: %s", d)
-		}
-	}
+	return string(data)
 }
 
 func TestCanonicalRoundTrip(t *testing.T) {

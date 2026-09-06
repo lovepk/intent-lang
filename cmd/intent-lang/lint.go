@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"intent-lang/internal/il"
+	"intent-lang/internal/provider"
 )
 
 func lint(args []string) error {
@@ -36,5 +38,42 @@ func lint(args []string) error {
 	}
 	fmt.Println("语法校验: 通过")
 	fmt.Print(doc.LintString())
+
+	if f["llm"] == "true" {
+		fmt.Println("\n=== LLM 语义复查 ===")
+		p, err := makeProvider(f)
+		if err != nil {
+			return err
+		}
+		p = retryProvider(p, f)
+		ctx := context.Background()
+		resp, err := p.Complete(ctx, provider.Request{
+			System:  il.LintPrompt,
+			Archive: doc.Canonical(),
+			User:    "请复查这份档案的语义一致性。",
+			Mode:    provider.ModeLint,
+		})
+		if err != nil {
+			return err
+		}
+		if len(resp.Findings) == 0 {
+			fmt.Println("LLM 复查: 未发现语义矛盾")
+			return nil
+		}
+		for _, fi := range resp.Findings {
+			sev := fi.Severity
+			if sev == "" {
+				sev = "suggestion"
+			}
+			where := fi.Section
+			if fi.ID != "" {
+				where += " " + fi.ID
+			}
+			fmt.Printf("[%s] %s: %s\n", sev, where, fi.Msg)
+			if fi.Fix != "" {
+				fmt.Println("  建议: " + fi.Fix)
+			}
+		}
+	}
 	return nil
 }

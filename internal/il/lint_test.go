@@ -20,9 +20,6 @@ func TestLintSnippetWithBehavior(t *testing.T) {
 	src := baseHead + "CONTRACT\n  R1: add\nSNIPPET s\n  while True:\n"
 	doc := parseOK(t, src)
 	ds := doc.Lint()
-	if len(ds) == 0 {
-		t.Fatal("expected SNIPPET+FIDELITY=behavior suggestion")
-	}
 	found := false
 	for _, d := range ds {
 		if d.Section == "SNIPPET" && d.Severity == SevSuggestion {
@@ -34,48 +31,40 @@ func TestLintSnippetWithBehavior(t *testing.T) {
 	}
 }
 
-func TestNegatedTokensProbe(t *testing.T) {
-	line := "R1: 只支持加减乘法，不做除法"
-	t.Logf("negatedTokens=%q", negatedTokens(line))
-	t.Logf("operatorTokens(除法)=%v", operatorTokens("除法"))
-	t.Logf("operatorTokens(divide)=%v", operatorTokens("divide(1,2) works"))
-}
-
-func TestLintAcceptUsesNegatedFeature(t *testing.T) {
-	src := baseHead + "CONTRACT\n  R1: 只支持加减乘法，不做除法\nACCEPT\n  A1: divide(1,2) works\n"
-	doc := parseOK(t, src)
-	ds := doc.Lint()
-	t.Logf("diags: %+v", ds)
-	found := false
-	for _, d := range ds {
-		if d.Section == "ACCEPT" && d.Severity == SevError && strings.Contains(d.Msg, "divide") {
-			found = true
-		}
-	}
-	if !found {
-		t.Errorf("expected accept/negation error, got %+v", ds)
-	}
-}
-
-func TestLintRejectedFeatureStillInContract(t *testing.T) {
-	src := baseHead + "CONTRACT\n  R1: 支持除法\n  R2: 支持加法\nDECISIONS\n  D1: 不做除法     reject: 除法     due: 简化\n"
+func TestLintArtifactWithoutSnippet(t *testing.T) {
+	src := "INTENT x@1\nKIND program\nFIDELITY artifact\nTARGET py\nCONTRACT\n  R1: add\n"
 	doc := parseOK(t, src)
 	ds := doc.Lint()
 	found := false
 	for _, d := range ds {
-		if d.Section == "CONTRACT" && d.Severity == SevError && strings.Contains(d.Msg, "divide") {
+		if d.Section == "FIDELITY" && d.Severity == SevError {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("expected reject/contract error, got %+v", ds)
+		t.Errorf("expected artifact-without-snippet error, got %+v", ds)
+	}
+}
+
+func TestLintOpenEmptyDefault(t *testing.T) {
+	src := baseHead + "CONTRACT\n  R1: a\nOPEN\n  ?1: 颜色选什么?     default:\n"
+	doc := parseOK(t, src)
+	ds := doc.Lint()
+	found := false
+	for _, d := range ds {
+		if d.Section == "OPEN" && d.Severity == SevSuggestion {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected empty-default suggestion, got %+v", ds)
 	}
 }
 
 func TestLintClean(t *testing.T) {
 	src := "INTENT x@1\nKIND program\nFIDELITY structure\nTARGET py\n" +
 		"CONTRACT\n  R1: 支持加法和减法\nACCEPT\n  A1: add(1,2)==3\n  A2: subtract(3,1)==2\n" +
-		"DECISIONS\n  D1: 只支持加减     reject: 乘除     due: 简化\nSNIPPET s\n  def f(): pass\n"
+		"DECISIONS\n  D1: 只支持加减     reject: 乘除     due: 简化\nSNIPPET s\n  def f(): pass\nMETA\n  spec: v1.0\n"
 	doc := parseOK(t, src)
 	ds := doc.Lint()
 	if len(ds) != 0 {
@@ -84,7 +73,7 @@ func TestLintClean(t *testing.T) {
 }
 
 func TestLintString(t *testing.T) {
-	src := baseHead + "CONTRACT\n  R1: 不做除法\nACCEPT\n  A1: divide ok\n"
+	src := baseHead + "CONTRACT\n  R1: a\nSNIPPET s\n  code\n"
 	doc := parseOK(t, src)
 	s := doc.LintString()
 	if !strings.Contains(s, "lint:") {
@@ -92,5 +81,17 @@ func TestLintString(t *testing.T) {
 	}
 	if !strings.Contains(s, "建议:") {
 		t.Errorf("LintString missing fix suggestion: %s", s)
+	}
+}
+
+func TestLintPassOnDemoFixture(t *testing.T) {
+	doc := parseOK(t, readFixture(t, "demo_calc_archive.intent"))
+	if errs := doc.Validate(); len(errs) != 0 {
+		t.Fatalf("demo fixture must validate: %v", errs)
+	}
+	for _, d := range doc.Lint() {
+		if d.Severity == SevError {
+			t.Errorf("demo fixture should have no structural lint errors, got: %s", d)
+		}
 	}
 }

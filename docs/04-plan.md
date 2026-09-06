@@ -69,27 +69,30 @@
 - 端到端 demo 全绿：7 轮建档（7 commits）→ key B 复现 → ACCEPT **10/10 通过**（含 `= 8` 格式自适应）；SNIPPET 点名行 `while True: expr = input('> ').strip()` 完整出现在复现产物。
 - 证据归档：`testdata/demo_calc_archive.intent`（7 轮真实档案）、`testdata/demo_calc_artifact.py`（key B 复现产物）。
 
-## M6 — 语言规范打磨到 v2（已完成第一批：一致性 Lint + 版本化 + 遵守率）
+## M6 — 语言规范打磨到 v2（第一批完成；LLM 单轮语义复查定案）
 
 > 目标：语言从"能用"走向"可靠、自洽、可演进"。方向=语言规范优先（用户拍板），暂不追服务形态。
 
-**已完成**
-- `il.Lint`：一致性检查（启发式），规则：
-  1. SNIPPET 存在但 FIDELITY=behavior → 点名锁定形态却没声明保真（suggestion）
-  2. ACCEPT 用例用到被 CONTRACT 否定的功能 → 自相矛盾（error）
-  3. DECISIONS 否决(reject)项仍被 CONTRACT 要求 → 矛盾（error）
-  4. META.spec 与当前规范版本不一致（suggestion）
-- 人可读报告：`LintString()`（分类/计数/位置/中文建议）；CLI `lint` 子命令（语法校验 + lint 一次输出）。
-- 规范版本化：`il.SpecVersion` 常量 + `il.MetaSpecLine()`；cmd/archive 改用统一来源，杜绝散落硬编码。
-- 遵守率统计：`ComplianceStats`（chat 每轮累计 validate 拒绝类型 + lint 位置计数，退出打印报告）。
-- **SpecPrompt 语义收紧（实测发现）**：DECISIONS.reject 只允许写"本次讨论中被否定的备选"，**禁止写"改动前的旧状态"**——calculator_llm_verified fixture 中 D1 reject:"仅支持加减乘"即旧状态写法，导致与 CONTRACT 假矛盾。已同步 il-keywords.md 加 ⚠️ 提示。
+**Lint 架构定案（用户决策）**：lint 分两层——
+1. **确定性结构检查** `il.Lint`（快/零成本/领域无关）：只做针对 IL 语言本身的结构规则。
+2. **LLM 单轮语义复查** `lint --llm`（`ModeLint` + `LintPrompt`）：理解任意领域词，找需要语义的矛盾。
+- **明确不做**：绑死"算子词表"的领域规则（已删除）；不做 agent 循环（用户拍板先保持单轮）。
 
-**实测验证**
-- 干净档案（demo_calc_archive）lint 零 error；人为制造矛盾档案全部检出，单测覆盖。
-- calculator_llm_verified（早期轮次档案）的"矛盾"检出被判定为档案缺陷（reject 语义错误），从 prompt 源头防，而非削弱 lint。
+**已完成**
+- `il.Lint` 精简为通用结构规则：SNIPPET 存在但 FIDELITY=behavior（suggestion）、FIDELITY=artifact 却无 SNIPPET（error）、META.spec 版本不一致（suggestion）、OPEN 的 default 为空（suggestion）。
+- 删除原领域性规则（CONTRACT 否定 vs ACCEPT、reject vs CONTRACT 的算子词表匹配）——那是对"计算器领域"的偷懒实现，非 IL 语言本身的检查。
+- `LintPrompt`：LLM 语义复查指令。含 severity 判定准则：只有"复现端无法同时满足两条规则"才标 error；措辞不同但实现可兼容 → suggestion。多轮实测校准。
+- `provider.ModeLint`：LLM 以 json_object 输出 `{"findings":[...]}`。
+- `il.SpecVersion`/`il.MetaSpecLine()` 统一版本来源；`ComplianceStats` 遵守率统计（chat 退出打印）。
+- **SpecPrompt 语义收紧**：DECISIONS.reject 只写"本次被否定的备选"，禁止写"改动前旧状态"（实测 calculator_llm_verified D1 因此误冲突）。il-keywords 加 ⚠️。
+
+**实测验证（LLM 单轮语义复查）**
+- **非计算器领域抓真矛盾**：人为构造订单系统档案（R3 不做图片 vs R1 可传图 vs A1 测 jpg vs D1 reject）→ 复查精确报出 3 处 error 并给改法。证明领域无关通用性。
+- **抓到 ACCEPT 运行时验收查不出的契约矛盾**：demo_calc_archive 的 R5（输出"错误：格式应为…"）与 R7/ACCEPT A4-A8（输出"非法输入"）存在历史遗留的两套错误消息冲突——产物实现统一成"非法输入"所以 ACCEPT 全过，但契约层确实不自洽。复查正确报出（这是产物验收的盲区，两条链路互补）。
+- 干净的订单档案（无矛盾）复查应零发现；severity 分级经校准（措辞不一致降 suggestion）。
 
 **下一步（M6 续）**
-- 悬空引用/OPEN 收敛提示、跨轮档案"旧状态"迁移工具（把历史 reject 归一）。
+- 悬空引用/OPEN 收敛提示；历史 reject"旧状态"归一工具。
 - 遵守率跑真实多轮后反哺规范 v2 定稿。
 ## M5 — 真实 LLM 接入（已完成核心验证，见下）
 

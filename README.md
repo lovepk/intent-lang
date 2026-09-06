@@ -55,8 +55,8 @@ go run ./cmd/intent-lang demo --script turns.txt --repo .intent-demo
     # 端到端 golden path：key A 建档 → 删会话 → key B 复现 → ACCEPT 验收 → SNIPPET 点名检查
 go run ./cmd/intent-lang compare --ref a.py --cand b.py --threshold 0.95 --fidelity structure
     # 形态对比（LCS diff + 分数；behavior 层改用 ACCEPT 行为验收）
-go run ./cmd/intent-lang lint --archive x.intent
-    # 语言体检：语法校验 + 一致性 Lint（SNIPPET/保真不匹配、验收与被否功能矛盾、reject 冲突、规范版本）
+go run ./cmd/intent-lang lint --archive x.intent            # 确定性结构检查（快/零成本）
+go run ./cmd/intent-lang lint --llm --key A --archive x.intent   # + LLM 单轮语义复查（找需理解力的矛盾，领域无关）
 go run ./cmd/intent-lang log / show <id> / rollback <id> --repo .intent
     # 档案版本管理：提交历史 / 查看某 commit / 回滚 HEAD
 ```

@@ -149,6 +149,16 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 		return Response{}, fmt.Errorf("deepseek: model did not return valid JSON: %w\nraw: %s", err, truncate(content, 800))
 	}
 
+	if req.Mode == ModeLint {
+		var lint struct {
+			Findings []Finding `json:"findings"`
+		}
+		if err := json.Unmarshal([]byte(content), &lint); err != nil {
+			return Response{}, fmt.Errorf("deepseek: lint output invalid: %w", err)
+		}
+		return Response{Findings: lint.Findings}, nil
+	}
+
 	if strings.TrimSpace(out.IntentUpdate) != "" {
 		canonDoc, err := il.Parse(out.IntentUpdate)
 		if err != nil {

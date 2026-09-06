@@ -36,71 +36,15 @@ func (d Diagnostic) String() string {
 	return line
 }
 
-// negatedTokens returns operator/feature tokens mentioned right after a
-// negation keyword, e.g. "不做除法" -> ["除法", "/"].
-func negatedTokens(text string) []string {
-	lower := strings.ToLower(text)
-	var out []string
-	for _, marker := range []string{"不做", "不支持", "不提供", "禁止", "移除", "no ", "reject:"} {
-		idx := strings.Index(lower, strings.ToLower(marker))
-		if idx < 0 {
-			continue
-		}
-		rest := text[idx+len(marker):]
-		if i := strings.IndexAny(rest, ",;，；。\n"); i >= 0 {
-			rest = rest[:i]
-		}
-		rest = strings.TrimSpace(rest)
-		if rest != "" {
-			out = append(out, rest)
-		}
-	}
-	return out
-}
-
-// operatorTokens normalizes operator mentions to a comparable token set.
-func operatorTokens(text string) map[string]bool {
-	tokens := map[string]bool{}
-	reps := []struct{ from, to string }{
-		{"除法", "divide"}, {"乘法", "multiply"}, {"减法", "subtract"}, {"加法", "add"},
-		{"除以", "divide"}, {"乘以", "multiply"}, {"减去", "subtract"}, {"加上", "add"},
-		{"+", "add"}, {"-", "subtract"}, {"*", "multiply"}, {"/", "divide"},
-		{"×", "multiply"}, {"÷", "divide"},
-		{"divide", "divide"}, {"division", "divide"},
-		{"multiply", "multiply"}, {"multiplication", "multiply"},
-		{"subtract", "subtract"}, {"subtraction", "subtract"},
-		{"add", "add"}, {"addition", "add"},
-		{"plus", "add"}, {"minus", "subtract"}, {"times", "multiply"},
-		{"addition", "add"}, {"减法运算", "subtract"}, {"加法运算", "add"},
-	}
-	t := strings.ToLower(text)
-	for _, r := range reps {
-		if strings.Contains(t, r.from) {
-			tokens[r.to] = true
-		}
-	}
-	return tokens
-}
-
-func mapContainsAny(m map[string]bool, s []string) bool {
-	for _, x := range s {
-		toks := operatorTokens(x)
-		for t := range toks {
-			if m[t] {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// Lint performs consistency checks beyond structural Validate. It is heuristic:
-// it flags contradictions that mechanical rules can catch; final judgment on
-// reproduced artifacts still belongs to ACCEPT acceptance.
+// Lint performs structural consistency checks that are deterministic and
+// language-general (no domain keyword tables). Deeper semantic contradictions
+// (e.g. ACCEPT conflicts with a CONTRACT negation, DECISIONS reject vs
+// CONTRACT) are checked by the LLM-based linter (see LintPrompt) because they
+// require understanding, not keyword matching.
 func (d *Doc) Lint() []Diagnostic {
 	var out []Diagnostic
 
-	// 1. SNIPPET present but FIDELITY=behavior: locking form without claiming it.
+	// SNIPPET present but FIDELITY=behavior: locking form without claiming it.
 	if d.Section("SNIPPET") != nil && d.Header.Fidelity == "behavior" {
 		out = append(out, Diagnostic{
 			Severity: SevSuggestion,
@@ -110,64 +54,7 @@ func (d *Doc) Lint() []Diagnostic {
 		})
 	}
 
-	// 2. CONTRACT negation vs ACCEPT usage of the same feature.
-	negSet := map[string]bool{}
-	contract := d.Section("CONTRACT")
-	if contract != nil {
-		for _, line := range contract.Lines {
-			for _, t := range negatedTokens(line) {
-				for k := range operatorTokens(t) {
-					negSet[k] = true
-				}
-			}
-		}
-	}
-	if accept := d.Section("ACCEPT"); accept != nil && len(negSet) > 0 {
-		for _, e := range accept.Entries() {
-			used := operatorTokens(e.Text)
-			for k := range used {
-				if negSet[k] {
-					out = append(out, Diagnostic{
-						Severity: SevError,
-						Section:  "ACCEPT",
-						ID:       "A" + e.ID,
-						Msg:      fmt.Sprintf("验收用例用到被 CONTRACT 否定的功能(%s)", k),
-						Fix:      "要么从 ACCEPT 移除该用例，要么 CONTRACT 的否定是错的——两者只能留一个",
-					})
-				}
-			}
-		}
-	}
-
-	// 3. DECISIONS reject item still required in CONTRACT.
-	rejected := map[string]bool{}
-	if dec := d.Section("DECISIONS"); dec != nil {
-		for _, line := range dec.Lines {
-			if i := strings.Index(strings.ToLower(line), "reject:"); i >= 0 {
-				for k := range operatorTokens(line[i:]) {
-					rejected[k] = true
-				}
-			}
-		}
-	}
-	if contract != nil && len(rejected) > 0 {
-		for _, e := range contract.Entries() {
-			used := operatorTokens(e.Text)
-			for k := range used {
-				if rejected[k] {
-					out = append(out, Diagnostic{
-						Severity: SevError,
-						Section:  "CONTRACT",
-						ID:       "R" + e.ID,
-						Msg:      fmt.Sprintf("DECISIONS 已否决 %s，但契约仍要求它", k),
-						Fix:      "删除契约中的该功能，或先推翻对应 DECISIONS（一次新对话）",
-					})
-				}
-			}
-		}
-	}
-
-	// 4. META.spec must match current spec version when present.
+	// META.spec must match current spec version when present.
 	if meta := d.MetaLines(); meta != nil {
 		for _, line := range meta {
 			if strings.HasPrefix(strings.TrimSpace(line), "spec:") {
@@ -178,6 +65,34 @@ func (d *Doc) Lint() []Diagnostic {
 						Section:  "META",
 						Msg:      fmt.Sprintf("档案声明 spec=%s，当前规范版本是 %s", val, SpecVersion),
 						Fix:      "用 il.MetaSpecLine() 重建 META（或确认有意使用旧规范）",
+					})
+				}
+			}
+		}
+	}
+
+	// FIDELITY=artifact requires at least one SNIPPET (form lock needs original).
+	if d.Header.Fidelity == "artifact" && d.Section("SNIPPET") == nil {
+		out = append(out, Diagnostic{
+			Severity: SevError,
+			Section:  "FIDELITY",
+			Msg:      "FIDELITY=artifact 要求形态一致，但档案没有 SNIPPET 黄金代码",
+			Fix:      "补上要求逐字复现的 SNIPPET，或把 FIDELITY 降为 structure/behavior",
+		})
+	}
+
+	// OPEN items with empty default value text.
+	if sec := d.Section("OPEN"); sec != nil {
+		for _, line := range sec.Lines {
+			body := entryBody(line)
+			if i := strings.Index(body, "default:"); i >= 0 {
+				def := strings.TrimSpace(strings.TrimPrefix(body[i:], "default:"))
+				if def == "" {
+					out = append(out, Diagnostic{
+						Severity: SevSuggestion,
+						Section:  "OPEN",
+						Msg:      fmt.Sprintf("default 为空（%s）", strings.TrimSpace(body)),
+						Fix:      "给该开放项一个明确的默认处理",
 					})
 				}
 			}

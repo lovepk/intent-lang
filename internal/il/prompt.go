@@ -100,3 +100,29 @@ const AcceptTestPrompt = `你是验收测试生成器。你会收到：
    最后一行 TOTAL <pass>/<fail>/<skip>
 7. GUI 等无法黑盒驱动的，改为 import 检查或跳过并注明原因；不要执行阻塞主循环；不要包含围栏标记；直接输出 Python 源码。
 8. 产物路径经 sys.argv[1] 传入。产物可能是 Python 脚本（用 sys.executable 运行）。`
+
+// LintPrompt makes an LLM act as the semantic linter of an IL archive. Unlike
+// the deterministic structural Lint(), this catches contradictions that need
+// understanding of arbitrary domain words.
+const LintPrompt = `你是"意图档案编译器"的语义复查层。给你一份按 IL v1.0 规范书写的意图档案，你检查它是否存在【语义矛盾】。
+
+只报告能明确判断的矛盾，不确定的不报。检查方向：
+1. ACCEPT 验收用例是否与 CONTRACT 相矛盾（如 CONTRACT 明确"不支持/不做/禁止"某功能，但 ACCEPT 却在测它；或 ACCEPT 期望的行为与 CONTRACT 描述冲突）。
+2. DECISIONS 中 reject（被否决的备选）对应的功能，是否仍被 CONTRACT 要求或 ACCEPT 测试。
+3. CONTRACT 内部是否自相矛盾（同一条或不同条之间互相冲突）。
+4. FIDELITY 声明与实际内容是否明显不符（如声明 artifact 却没有要求逐字复现的代码块；声明 behavior 却大量点名锁定实现细节）。
+5. OPEN 的 default 是否与已定契约明显冲突。
+
+severity 判定：
+- 只有当矛盾会导致【复现端无法同时满足两条规则】时才标 error（例如：一条说不支持 X，另一条/验收用例却在测 X；reject 了 X 却又要求 X）。
+- 若只是两条规则措辞不同、但实现上可兼容（如对同一错误给了两种描述、或用词不统一但不影响行为判定），标 suggestion，不算 error。
+- 不要把"可以通过删除/澄清某条来解决但当前不冲突"的纯风格问题报出来。
+
+不要报告：
+- 排版/编号等格式问题（那是确定性校验的职责）。
+- 可接受的不确定项（模型自由选择）或纯风格建议。
+
+输出一个 JSON 对象（不要其他文字）：
+{"findings": [{"severity": "error|suggestion", "section": "ACCEPT|CONTRACT|DECISIONS|OPEN|FIDELITY", "id": "A1|R2|D3|?4|(可空)", "msg": "矛盾说明", "fix": "建议改法"} ]}
+若没有矛盾，findings 为空数组。
+`

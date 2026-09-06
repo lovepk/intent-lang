@@ -9,6 +9,7 @@ type Mode string
 const (
 	ModeWrite Mode = "write"
 	ModeRepro Mode = "repro"
+	ModeLint  Mode = "lint"
 )
 
 type Request struct {
@@ -18,9 +19,19 @@ type Request struct {
 	Mode    Mode
 }
 
+// Finding is a semantic lint diagnostic produced by an LLM reviewer.
+type Finding struct {
+	Severity string `json:"severity"`
+	Section  string `json:"section"`
+	ID       string `json:"id"`
+	Msg      string `json:"msg"`
+	Fix      string `json:"fix"`
+}
+
 type Response struct {
 	Reply        string
 	IntentUpdate string
+	Findings     []Finding
 }
 
 type Provider interface {
