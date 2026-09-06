@@ -261,22 +261,3 @@ func TestMetaStripAndAttach(t *testing.T) {
 		t.Error("re-parsed doc lost META")
 	}
 }
-
-func TestNextID(t *testing.T) {
-	doc, err := Parse("INTENT x@1\nKIND program\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\n  R2: b\nACCEPT\n  A1: ok\n")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := doc.NextID("CONTRACT"); got != "R3" {
-		t.Errorf("NextID CONTRACT = %s, want R3", got)
-	}
-	if got := doc.NextID("ACCEPT"); got != "A2" {
-		t.Errorf("NextID ACCEPT = %s, want A2", got)
-	}
-	if got := doc.NextID("DECISIONS"); got != "D1" {
-		t.Errorf("NextID DECISIONS = %s, want D1", got)
-	}
-	if got := doc.NextID("OPEN"); got != "?1" {
-		t.Errorf("NextID OPEN = %s, want ?1", got)
-	}
-}

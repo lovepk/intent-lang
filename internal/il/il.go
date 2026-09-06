@@ -172,48 +172,6 @@ func (d *Doc) Section(name string) *Section {
 	return nil
 }
 
-func (d *Doc) AddSection(name string) *Section {
-	s := &Section{Name: name}
-	d.Sections = append(d.Sections, s)
-	return s
-}
-
-func (d *Doc) AddLine(name, line string) {
-	if s := d.Section(name); s != nil {
-		s.Lines = append(s.Lines, line)
-		return
-	}
-	s := d.AddSection(name)
-	s.Lines = []string{line}
-}
-
-func (d *Doc) NextID(name string) string {
-	re := entryIDRe[name]
-	if re == nil {
-		return ""
-	}
-	max := 0
-	if s := d.Section(name); s != nil {
-		for _, line := range s.Lines {
-			if m := re.FindStringSubmatch(line); m != nil {
-				if n, ok := s.NumOfID(m[1]); ok && n > max {
-					max = n
-				}
-			}
-		}
-	}
-	prefix := "R"
-	switch name {
-	case "ACCEPT":
-		prefix = "A"
-	case "DECISIONS":
-		prefix = "D"
-	case "OPEN":
-		prefix = "?"
-	}
-	return fmt.Sprintf("%s%d", prefix, max+1)
-}
-
 type Problem struct {
 	Section string
 	ID      string

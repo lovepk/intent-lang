@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"intent-lang/internal/archive"
 	"intent-lang/internal/il"
@@ -23,7 +22,7 @@ func main() {
 
 func run() error {
 	if len(os.Args) < 2 {
-		return fmt.Errorf("usage: intent-lang <chat|verify|repro|log|show|rollback> [options]")
+		return fmt.Errorf("usage: intent-lang <chat|verify|repro|compare|accept|lint|demo|log|show|rollback> [options]")
 	}
 	cmd := os.Args[1]
 
@@ -98,8 +97,6 @@ func retryProvider(p provider.Provider, f map[string]string) provider.Provider {
 	return provider.NewRetry(p, attempts)
 }
 
-func verifyMeta(before, after string) error { return nil }
-
 func noMeta(text string) string {
 	if strings.TrimSpace(text) == "" {
 		return ""
@@ -117,15 +114,6 @@ func validateIL(text string) []error {
 		return []error{err}
 	}
 	return doc.Validate()
-}
-
-func buildMeta(commits int) []string {
-	return []string{
-		il.MetaSpecLine(),
-		"created: " + time.Now().UTC().Format(time.RFC3339),
-		fmt.Sprintf("commits: %d", commits),
-		"deprecated: []",
-	}
 }
 
 func lenLog(store *archive.Store) int {

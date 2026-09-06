@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 )
@@ -129,19 +128,4 @@ func (s *Store) Log() ([]*Commit, error) {
 		cur = c.Parent
 	}
 	return out, nil
-}
-
-func (s *Store) ListIDs() ([]string, error) {
-	entries, err := os.ReadDir(s.dir)
-	if err != nil {
-		return nil, err
-	}
-	var ids []string
-	for _, e := range entries {
-		if strings.HasSuffix(e.Name(), ".json") {
-			ids = append(ids, strings.TrimSuffix(e.Name(), ".json"))
-		}
-	}
-	sort.Strings(ids)
-	return ids, nil
 }
