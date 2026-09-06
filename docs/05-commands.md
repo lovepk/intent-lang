@@ -76,18 +76,20 @@ il lint --llm --key A --archive calc.il # + LLM 复查
 
 ### 4. `repro` — 失忆复现
 
-模拟"会话删除、人机双失忆"，仅凭档案重建产物。默认输出名从档案文件名+TARGET 推断扩展名。
+模拟"会话删除、人机双失忆"，仅凭档案重建产物。从仓库读取时会自动把 `<ref>` 引用展开成自包含档案再复现。默认输出名从档案名+TARGET 推断扩展名。
 
 ```sh
-il repro --key B --archive .il/archive.last.il --out artifact.py
+il repro --key B --archive .il/archive.last.il --out artifact.py   # 单文件
+il repro --key B --repo .il --name app --out app.py               # 仓库多档案（自动展开引用）
 ```
 
 ### 5. `accept` — ACCEPT 行为验收
 
-LLM 依据档案 ACCEPT 用例生成测试脚本，本机运行，输出 PASS/FAIL/TOTAL。可跑产物时才有效；GUI 等由脚本降级为源码检查或跳过。
+LLM 依据档案 ACCEPT 用例生成测试脚本，本机运行，输出 PASS/FAIL/TOTAL。可跑产物时才有效；GUI 等由脚本降级为源码检查或跳过。支持单文件或仓库多档案（`--repo`/`--name`，自动展开引用）。
 
 ```sh
 il accept --archive calc.il --artifact artifact.py
+il accept --repo .il --name app --artifact app.py
 # 依赖本机 python（验收脚本以标准库跑产物）；解释器可用 IL_PYTHON 覆盖
 ```
 

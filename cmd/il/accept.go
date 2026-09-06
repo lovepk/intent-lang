@@ -20,11 +20,18 @@ func accept(args []string) error {
 	p = retryProvider(p, f)
 
 	archiveFile := f["archive"]
-	artifactFile := f["artifact"]
-	if archiveFile == "" || artifactFile == "" {
-		return fmt.Errorf("accept requires --archive <file.il> --artifact <artifact>")
+	if archiveFile == "" {
+		archiveFile = positionalArg(args)
+		f["archive"] = archiveFile
 	}
-	archiveData, err := os.ReadFile(archiveFile)
+	artifactFile := f["artifact"]
+	if archiveFile == "" && f["repo"] == "" && f["name"] == "" {
+		return fmt.Errorf("accept requires --archive <file.il> 或 --repo <dir> [--name <档案名>]，以及 --artifact <artifact>")
+	}
+	if artifactFile == "" {
+		return fmt.Errorf("accept requires --artifact <artifact>")
+	}
+	archiveText, err := loadResolvedSource(f)
 	if err != nil {
 		return err
 	}
@@ -36,7 +43,7 @@ func accept(args []string) error {
 	ctx := context.Background()
 	resp, err := p.Complete(ctx, provider.Request{
 		System:  il.AcceptTestPrompt,
-		Archive: string(archiveData),
+		Archive: archiveText,
 		User:    fmt.Sprintf("产物路径: %s\n请据此生成验收脚本。", absArtifact),
 		Mode:    provider.ModeRepro,
 	})
