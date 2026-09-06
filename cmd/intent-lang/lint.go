@@ -12,8 +12,8 @@ import (
 func lint(args []string) error {
 	f := flags(args)
 	archiveFile := f["archive"]
-	if archiveFile == "" && len(args) > 0 {
-		archiveFile = args[0]
+	if archiveFile == "" {
+		archiveFile = positionalArg(args)
 	}
 	if archiveFile == "" {
 		return fmt.Errorf("lint requires --archive <file.intent>")

@@ -19,8 +19,8 @@ func verify(args []string) error {
 
 	archiveFile := f["archive"]
 	msg := f["msg"]
-	if msg == "" && len(args) > 0 && !strings.HasPrefix(args[0], "--") {
-		msg = args[0]
+	if msg == "" {
+		msg = positionalArg(args)
 	}
 	if msg == "" {
 		return fmt.Errorf("verify requires --msg <用户需求>")
