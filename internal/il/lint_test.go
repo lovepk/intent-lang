@@ -95,3 +95,65 @@ func TestLintPassOnDemoFixture(t *testing.T) {
 		}
 	}
 }
+
+func TestLintDanglingReference(t *testing.T) {
+	src := baseHead + "CONTRACT\n  R1: 输入见 R9，输出按 R1\nACCEPT\n  A1: 见 A9\n  A2: 见 R1\nDECISIONS\n  D1: 见 D9\nOPEN\n  ?1: 见 ?9     default: x\n"
+	doc := parseOK(t, src)
+	ds := doc.Lint()
+	want := map[string]bool{"R9": false, "A9": false, "D9": false, "?9": false}
+	for _, d := range ds {
+		if d.Severity == SevError {
+			for ref := range want {
+				if strings.Contains(d.Msg, ref) {
+					want[ref] = true
+				}
+			}
+		}
+	}
+	for ref, found := range want {
+		if !found {
+			t.Errorf("dangling ref %s not reported; all=%+v", ref, ds)
+		}
+	}
+	// R1 exists, so "输出按 R1" must NOT be flagged.
+	for _, d := range ds {
+		if strings.Contains(d.Msg, "R1") && strings.Contains(d.Msg, "不存在") {
+			t.Errorf("existing R1 should not be dangle: %s", d)
+		}
+	}
+}
+
+func TestLintNoDanglingWhenRefsResolve(t *testing.T) {
+	src := baseHead + "CONTRACT\n  R1: a\n  R2: b\nACCEPT\n  A1: 见 R1\nDECISIONS\n  D1: 见 R2     reject: x     due: y\n"
+	doc := parseOK(t, src)
+	for _, d := range doc.Lint() {
+		if d.Severity == SevError {
+			t.Errorf("resolved refs flagged: %s", d)
+		}
+	}
+}
+
+func TestLintOpenConverged(t *testing.T) {
+	src := baseHead + "CONTRACT\n  R1: 错误时输出 非法输入\nOPEN\n  ?1: 错误消息文案     default: 非法输入\n"
+	doc := parseOK(t, src)
+	ds := doc.Lint()
+	found := false
+	for _, d := range ds {
+		if d.Section == "OPEN" && d.Severity == SevSuggestion && strings.Contains(d.Msg, "已被 CONTRACT") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected OPEN-converged suggestion, got %+v", ds)
+	}
+}
+
+func TestLintOpenNotConverged(t *testing.T) {
+	src := baseHead + "CONTRACT\n  R1: 输出计算结果\nOPEN\n  ?1: 结果精度保留几位     default: 保留2位小数\n"
+	doc := parseOK(t, src)
+	for _, d := range doc.Lint() {
+		if d.Section == "OPEN" && strings.Contains(d.Msg, "已被 CONTRACT") {
+			t.Errorf("unrelated open flagged: %s", d)
+		}
+	}
+}

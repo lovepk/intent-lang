@@ -99,8 +99,9 @@
 5. 🟢 **META.commits 用会话计数**：改用真实链长 `lenLog(store)+1`。
 
 **下一步（M6 续）**
-- 悬空引用/OPEN 收敛提示；历史 reject"旧状态"归一工具。
-- 遵守率跑真实多轮后反哺规范 v2 定稿。
+- ✅ 悬空引用检测：`见/参见/参考 R3/A2/D1/?1` 指向不存在条目 → error（`refRe` + 各段 id 索引）。
+- ✅ OPEN 收敛提示：OPEN 的 default 措辞已被某条 CONTRACT 决定（default 是 CONTRACT 正文子串）→ suggestion，提示移除。
+- 待做：遵守率跑真实多轮后反哺规范 v2 定稿（需真实运行数据）。
 ## M5 — 真实 LLM 接入（已完成核心验证，见下）
 
 **已完成**
