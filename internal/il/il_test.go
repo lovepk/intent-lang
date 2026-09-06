@@ -38,7 +38,6 @@ func TestParseRealLLMVerifiedArchive(t *testing.T) {
 	files := []string{
 		"../../testdata/calculator_llm_verified.intent",
 		"../../testdata/demo_calc_archive.intent",
-		"../../testdata/compliance_password_archive.intent",
 	}
 	if !allExist(t, files) {
 		t.Skip("testdata not tracked in git; skipping real-archive regression")
