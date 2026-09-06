@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"intent-lang/internal/archive"
@@ -11,6 +12,22 @@ import (
 
 func storeFromFlags(args []string) (*archive.Store, error) {
 	return openStore(flags(args))
+}
+
+// positionalArg returns the first non-flag argument (id etc.), skipping
+// "--key value" pairs.
+func positionalArg(args []string) string {
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if strings.HasPrefix(a, "--") {
+			if i+1 < len(args) && !strings.HasPrefix(args[i+1], "--") {
+				i++ // skip the flag's value
+			}
+			continue
+		}
+		return a
+	}
+	return ""
 }
 
 func cmdLog(args []string) error {
@@ -43,8 +60,8 @@ func cmdShow(args []string) error {
 		return err
 	}
 	id := f["id"]
-	if id == "" && len(args) > 0 {
-		id = args[0]
+	if id == "" {
+		id = positionalArg(args)
 	}
 	if id == "" {
 		latest, err := store.Latest()
@@ -72,8 +89,8 @@ func cmdRollback(args []string) error {
 		return err
 	}
 	id := f["id"]
-	if id == "" && len(args) > 0 {
-		id = args[0]
+	if id == "" {
+		id = positionalArg(args)
 	}
 	if id == "" {
 		return fmt.Errorf("rollback requires <id>")
