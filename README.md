@@ -66,11 +66,13 @@ CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。非法档案输出�
 ## 文件格式与编辑器支持
 
 - 档案文件后缀：**`.intent`**（规范见 `docs/il-spec.md` §2.1）。
-- **VS Code**：`editor/vscode-il/` 是最小扩展包，本地安装即可高亮 `.intent`：
+- **VS Code**：扩展在 `editor/vscode-il/`。打包 + 安装：
   ```sh
-  code --install-extension editor/vscode-il/   # 或 VS Code 扩展视图 → Install from VSIX/文件夹
+  cd editor/vscode-il && npx @vscode/vsce package --out ../intent-lang-il.vsix
+  code --install-extension editor/intent-lang-il.vsix
   ```
-  没有 VS Code 的编辑器可用通用 TextMate grammar：`editor/intent-language.tmLanguage.json`（scope `source.intent`，Sublime Text / nova / 其它 TextMate 兼容编辑器可直接引用）。
+  或装好后在 VS Code 里 `Ctrl+Shift+P` → `Developer: Reload Window` 生效。注意：**不能用 `code --install-extension <文件夹>` 直接装文件夹**（grammar 需在包内，务必先打包成 .vsix）。
+- 没有 VS Code 的编辑器可用通用 TextMate grammar：`editor/vscode-il/syntaxes/intent-language.tmLanguage.json`（scope `source.intent`，Sublime Text / nova / 其它 TextMate 兼容编辑器可直接引用）。
 - 高亮覆盖：头部字段（INTENT/KIND/FIDELITY/TARGET）、段落名、条目编号（R/A/D/?）、行内标签（reject:/due:/default:/in:/out:/style:）、`->`、`#` 注释、SNIPPET 原文。
 
 ## 验证证据

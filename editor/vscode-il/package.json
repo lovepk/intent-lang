@@ -22,7 +22,7 @@
       {
         "language": "intent",
         "scopeName": "source.intent",
-        "path": "../intent-language.tmLanguage.json"
+        "path": "./syntaxes/intent-language.tmLanguage.json"
       }
     ]
   }

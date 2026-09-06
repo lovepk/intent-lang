@@ -9,3 +9,4 @@ __pycache__/
 artifact.py
 archive.last.intent
 .intent/
+*.vsix
