@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"time"
 )
 
 type Mode string
@@ -27,9 +26,4 @@ type Response struct {
 type Provider interface {
 	Complete(ctx context.Context, req Request) (Response, error)
 	Name() string
-}
-
-type Meta struct {
-	CreatedAt time.Time
-	Model     string
 }

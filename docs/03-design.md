@@ -38,8 +38,8 @@
 
 | 模块 | 职责 | 位置 |
 |------|------|------|
-| `il` | 意图语言：档案 B 的解析、序列化、校验、规范化（canonical form，供 diff）、MetaUnchanged 保护、SpecPrompt/ReproPrompt。 | `internal/il/` |
-| `provider` | LLM 抽象：`Provider` 接口 + `mock`（写档+repro）+ `deepseek`（真实）+ `Retry` 装饰器 + `StripFence`。 | `internal/provider/` |
+| `il` | 意图语言：档案 B 的解析、序列化、校验、规范化（canonical form，供 diff）、META 剥离/注入（StripMeta/WithMeta）、SpecPrompt/ReproPrompt。 | `internal/il/` |
+| `provider` | LLM 抽象：`Provider` 接口 + `deepseek`（真实）+ `Retry` 装饰器 + `StripFence`。 | `internal/provider/` |
 | `archive` | 档案仓库：commit 链持久化（`.intent/` 目录）、自动 commit message 摘要、log/show/rollback。 | `internal/archive/` |
 | `cli` | 命令行入口：`chat`/`verify`/`repro`/`log`/`show`/`rollback`。 | `cmd/intent-lang/` |
 | `docs` | 文档：本文与目标/场景/规范/计划。 | `docs/` |
@@ -69,7 +69,7 @@
 
 ### 3.2 响应格式
 
-Provider 的统一响应结构（对 mock 与真实实现一致）：
+Provider 的统一响应结构（对各真实实现一致）：
 
 ```json
 {
@@ -87,7 +87,7 @@ Provider 的统一响应结构（对 mock 与真实实现一致）：
 3. Provider 返回产物文本，落盘为 `C'`。
 4. similarity 对比 `C`（对话阶段留存/或由 B 复现基线）与 `C'`，输出报告。
 
-注：mock 阶段 C 与 C' 都由确定性 mock 生成，diff 用于验证"管线本身不引入漂移"；真实 LLM 阶段，C 需要来自原始对话时产物快照，复现报告对比快照与 C'。
+注：真实 LLM 阶段，C 需要来自原始对话时产物快照，复现报告对比快照与 C'。
 
 ### 3.4 档案版本化
 
@@ -113,23 +113,23 @@ type Request struct {
     System  string // 系统提示：IL 规范 + 角色约定
     Archive string // 当前最新档案 B（对话模式=最新版；复现模式=目标版）
     User    string // 当前用户消息（对话模式）或复现指令
+    Mode    Mode   // ModeWrite（双通道 JSON）或 ModeRepro（纯产物输出）
 }
 
 type Response struct {
-    Reply        string // 通道 A
+    Reply        string // 通道 A（write）或重建产物（repro）
     IntentUpdate string // 通道 B：完整的新档案文本（全量重写），可为空
 }
 ```
 
-### mock 实现
+### 真实 Provider：DeepSeek
 
-第一阶段 `mock` Provider 满足以下性质（使离线可复现且行为可解释）：
+`provider/deepseek.go` 实现 OpenAI 兼容协议：
 
-- 内置一个**确定性的计算器领域转换器**：从用户消息识别意图（如 `加/乘/界面` 等），把变更映射为对档案各段的修改（追加 `R`、补 `ACCEPT`、更新 `FIDELITY`/`TARGET`、记 `DECISIONS`）。
-- **全量重写**：每次响应输出完整的新档案文本（满足 il-spec §4 规则 1）；Agent 负责 diff 与 commit。
-- 自校验：输出前解析并 `Validate()`，产出非法档案即报错返回。
-- 确定性：纯规则、无随机；相同输入序列 → 相同输出（有测试保证）。
-- 通过 `NewMock(name)` 可创建多个不同名实例（模拟 LLM-A / LLM-B），为 M3 跨模型复现验证做准备。
+- `Mode=write`：请求启用 `response_format: json_object`，模型必须返回 `{"reply","intent_update"}`；返回前对 intent_update 做 il 解析+校验+规范化（非法即报错，由 `Retry` 装饰器带纠正指令重试）。
+- `Mode=repro`：不启用 JSON 模式，模型直接输出产物；经 `StripFence` 防御性清洗后返回。
+- 凭据经 `.env` 提供 `DEEPSEEK_API_KEY_A/B`（对应 LLM-A/LLM-B），加载于 CLI 层。
+- `provider.Retry` 装饰器：对非法 JSON / 非法档案的输出，把纠正指令拼回下一次请求重试（默认 2 次）。
 
 ## 5. 意图语言 (IL) 概要
 
@@ -137,7 +137,7 @@ type Response struct {
 
 1. **四条根本原则**：① 消歧优先（只允许"已消歧的事实"）；② 否决与决策是资产（`NO` 否定 + `DECISIONS` 日志）；③ FIDELITY 声明锁定层级（`behavior`/`structure`/`artifact`）；④ 人类可读优先（任何一行不得要求读者"学过编程"）。
 2. **八个段落**：头四段 `INTENT/KIND/FIDELITY/TARGET` + `CONTRACT`(R) / `ANCHORS` / `SNIPPET`(黄金代码) / `ACCEPT`(A) / `DECISIONS`(D) / `OPEN`(?，必带 default) / `META`。
-3. **稳定 ID 优先**：R/A/D 用稳定编号；新增=追加，修订=改正文保编号，作废=记入 META.deprecated；编号永不复用。
+3. **稳定 ID 优先**：R/A/D 用稳定编号；新增=追加，修订=改正文保编号，作废=移除条目（`deprecated` 由 Agent 依据 diff 计算写入 META）；编号永不复用。
 4. **强模板、弱语法**：段落与编号是唯一硬结构，条目一律自然语言句子；语义靠消歧判定保证，不靠文法。所有传统语法要素以自然句形态呈现（见 il-spec 2.5 对照表）。
 5. **自包含 + 全量重写**：一次用户消息 = 输出完整新档案（DEC-1），保证"失忆后仅凭 B 可复现"。
 6. **规范与档案分离**：IL 语法规范是静态文档（注入用），档案 B 是具体实例。
@@ -146,8 +146,7 @@ type Response struct {
 
 ### 6.1 Provider 返回非法意图语言
 
-- 校验失败时：不落盘。降级策略 = 把校验错误与 B 原样拼进下一条系统提示，请 LLM 修正；若连续失败超过阈值（如 3 次），本次只返回 reply，不更新档案，并提示用户。
-- mock 阶段可注入错误场景用于测试该路径。
+- 校验失败时：不落盘。降级策略 = 由 `provider.Retry` 把校验错误与纠正指令拼进下一次请求，请 LLM 修正；若连续失败超过阈值（默认 2 次），本次只返回 reply，不更新档案，并提示用户（实现于 `provider/retry.go`）。
 
 ### 6.2 产物 C 快照管理
 
@@ -174,7 +173,7 @@ intent-lang/
 ├── cmd/intent-lang/   # main / chat / verify / repro / repo(log,show,rollback) / dotenv
 ├── internal/
 │   ├── il/            # 解析/校验/规范化/Meta保护/提示词
-│   ├── provider/      # 接口 + mock + deepseek + retry + strip
+│   ├── provider/      # 接口 + deepseek + retry + strip
 │   ├── archive/       # 档案仓库 + commit 链 + 摘要
 │   ├── repro/         # 复现器
 │   ├── similarity/    # 对比报告

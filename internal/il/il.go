@@ -352,19 +352,3 @@ func (d *Doc) WithMeta(lines []string) *Doc {
 	out.Sections = append(out.Sections, &Section{Name: "META", Lines: append([]string(nil), lines...)})
 	return out
 }
-
-// MetaUnchanged reports whether the META section in newDoc equals the one in
-// oldDoc (spec: META is maintained by the Agent, the LLM must not edit it).
-func MetaUnchanged(oldDoc, newDoc *Doc) bool {
-	oldLines := oldDoc.MetaLines()
-	newLines := newDoc.MetaLines()
-	if len(oldLines) != len(newLines) {
-		return false
-	}
-	for i := range oldLines {
-		if oldLines[i] != newLines[i] {
-			return false
-		}
-	}
-	return true
-}

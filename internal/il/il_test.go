@@ -177,27 +177,30 @@ func TestParseContentBeforeSection(t *testing.T) {
 	}
 }
 
-func TestMetaUnchanged(t *testing.T) {
-	mk := func(meta string) *Doc {
-		src := "INTENT x@1\nKIND program\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nMETA\n" + meta
-		doc, err := Parse(src)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return doc
+func TestMetaStripAndAttach(t *testing.T) {
+	doc, err := Parse("INTENT x@1\nKIND program\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nMETA\n  spec: v1.0\n  commits: 3\n")
+	if err != nil {
+		t.Fatal(err)
 	}
-	same := mk("  spec: v1.0\n  commits: 3\n")
-	if !MetaUnchanged(same, mk("  spec: v1.0\n  commits: 3\n")) {
-		t.Error("identical META should be unchanged")
+	noMeta := doc.StripMeta()
+	if noMeta.Section("META") != nil {
+		t.Error("StripMeta should remove META section")
 	}
-	if MetaUnchanged(same, mk("  spec: v1.0\n  commits: 4\n")) {
-		t.Error("changed commits should be detected")
+	with := noMeta.WithMeta([]string{"spec: v1.0", "commits: 4"})
+	meta := with.Section("META")
+	if meta == nil || len(meta.Lines) != 2 {
+		t.Error("WithMeta should append META lines")
 	}
-	if MetaUnchanged(same, mk("  spec: v1.0\n  commits: 3\n  extra: x\n")) {
-		t.Error("added META line should be detected")
+	if with.Canonical() == noMeta.Canonical() {
+		t.Error("canonical should differ after WithMeta")
 	}
-	if MetaUnchanged(same, &Doc{}) {
-		t.Error("dropping META should be detected")
+	// round-trip canonical must keep META last and parseable
+	re, err := Parse(with.Canonical())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if re.Section("META") == nil {
+		t.Error("re-parsed doc lost META")
 	}
 }
 

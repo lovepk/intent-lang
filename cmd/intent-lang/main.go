@@ -72,22 +72,11 @@ func openStore(f map[string]string) (*archive.Store, error) {
 }
 
 func makeProvider(f map[string]string) (provider.Provider, error) {
-	kind := f["provider"]
-	if kind == "" {
-		kind = "deepseek"
+	keyEnv := "DEEPSEEK_API_KEY_A"
+	if f["key"] == "B" {
+		keyEnv = "DEEPSEEK_API_KEY_B"
 	}
-	switch kind {
-	case "mock":
-		return provider.NewMock("mock-calculus"), nil
-	case "deepseek":
-		keyEnv := "DEEPSEEK_API_KEY_A"
-		if f["key"] == "B" {
-			keyEnv = "DEEPSEEK_API_KEY_B"
-		}
-		return provider.NewDeepSeekFromEnv(keyEnv), nil
-	default:
-		return nil, fmt.Errorf("unknown provider %q", kind)
-	}
+	return provider.NewDeepSeekFromEnv(keyEnv), nil
 }
 
 func retryProvider(p provider.Provider, f map[string]string) provider.Provider {

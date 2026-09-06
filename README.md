@@ -33,24 +33,24 @@
 
 ## 状态
 
-- M0 文档骨架 ✅ / M1 IL+mock ✅ / M2 档案仓库+对话内核 ✅ / M5 真实 LLM 核心闭环已提前验证 ✅。
-- 技术栈：Go。Provider 可替换：`mock`（离线确定性）或 `deepseek`（真实）。
-- 真实调用需 `.env` 提供 `DEEPSEEK_API_KEY_A/B`（文件已 gitignore，不入库）。
+- M0 文档骨架 ✅ / M1 IL ✅ / M2 档案仓库+对话内核 ✅ / M5 真实 LLM 闭环验证 ✅（详见 `docs/04-plan.md`）。
+- 技术栈：Go。Provider：`deepseek`（真实，OpenAI 兼容协议，可扩展其他模型）。
+- 运行需 `.env` 提供 `DEEPSEEK_API_KEY_A/B`（文件已 gitignore，不入库）。
 
 ## 用法
 
 ```sh
-go run ./cmd/intent-lang chat  --provider deepseek --key A --repo .intent
+go run ./cmd/intent-lang chat  --key A --repo .intent
     # 交互式双通道对话：输入需求 → reply + 档案增量更新，每次变更写一条 commit
-go run ./cmd/intent-lang verify --provider deepseek --key A --msg "加上乘法"
+go run ./cmd/intent-lang verify --key A --msg "加上乘法"
     # 单轮遵守度检查：看模型对这份档案的重写是否合法
-go run ./cmd/intent-lang repro  --provider deepseek --key B --archive .intent/archive.last.intent --out artifact.py
+go run ./cmd/intent-lang repro  --key B --archive .intent/archive.last.intent --out artifact.py
     # 失忆复现：仅凭档案重建产物
 go run ./cmd/intent-lang log / show <id> / rollback <id> --repo .intent
     # 档案版本管理：提交历史 / 查看某 commit / 回滚 HEAD
 ```
 
-离线可跑 `--provider mock`（确定性）。CLI 会按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。非法档案输出自动带纠正指令重试（`--retry N`，默认 2）。
+CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。非法档案输出自动带纠正指令重试（`--retry N`，默认 2）。
 
 ## 验证证据
 
@@ -58,4 +58,4 @@ go run ./cmd/intent-lang log / show <id> / rollback <id> --repo .intent
 
 ## 路线
 
-M0 文档 → M1 IL+mock → M2 档案仓库+对话内核 → M3 复现+相似度 → M4 端到端演示 → M5 真实 LLM。
+M0 文档 → M1 IL → M2 档案仓库+对话内核 → M3 复现+相似度 → M4 端到端演示 → M5 真实 LLM。
