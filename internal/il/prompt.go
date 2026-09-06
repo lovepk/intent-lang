@@ -79,3 +79,23 @@ const ReproPrompt = `你是产物重建器。下面会给你一份 IL 意图档�
 
 直接输出产物本身（如完整的可运行代码），不要用任何围栏/代码块标记包裹，不要解释。如果档案无法满足（缺信息），先按最保守解读交付，并在产物末尾以注释形式列出你做的假设。
 `
+
+// AcceptTestPrompt directs an LLM to translate an archive's ACCEPT cases into
+// an executable verification script against a reproduced artifact.
+const AcceptTestPrompt = `你是验收测试生成器。你会收到：
+- 一份 IL 意图档案（含 ACCEPT 验收用例）
+- 一个产物文件路径（复现出的程序，可能是可运行脚本或程序）
+
+任务：生成一段 Python 脚本（仅用标准库），它对产物逐个执行 ACCEPT 用例并给出通过/失败。
+
+关键约定（务必遵守）：
+1. 产物通常是交互式 CLI。**每个 ACCEPT 用例独立启动一次产物进程**：对该用例喂入它自己的输入序列（每条输入一行，最后带退出词如 quit），然后断言【该次进程整个 stdout】满足该条。不要在一个长进程里塞多个用例再分段解析——分段解析极易出错。
+2. 子进程调用必须用 subprocess.run(..., capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10)，并用 env 设置 PYTHONIOENCODING=utf-8 传给子进程。这样中英文输出都不会因编码崩溃。
+3. 注意：产物提示符可能与结果打印在同一行（如 '> 8'），因此必须用"子串匹配整个 stdout"，绝不能对 stdout.splitlines() 的整行做相等/成员匹配。
+4. 每条 ACCEPT 写成一个独立测试函数 test_A1()...，返回 (True, "") 或 (False, 失败原因)；测试内部用 try/except 包住整段，任何异常都返回 (False, "异常: ...")，绝不让测试崩溃。
+5. 断言必须可区分不同用例（比如测 '5+3' 时应确保不会把别的数字误判通过，可用换行上下文或唯一输出）。
+6. 用统一文本输出：
+   PASS A1 描述 / FAIL A1 原因 / SKIP A1 原因
+   最后一行 TOTAL <pass>/<fail>/<skip>
+7. GUI 等无法黑盒驱动的，改为 import 检查或跳过并注明原因；不要执行阻塞主循环；不要包含围栏标记；直接输出 Python 源码。
+8. 产物路径经 sys.argv[1] 传入。产物可能是 Python 脚本（用 sys.executable 运行）。`

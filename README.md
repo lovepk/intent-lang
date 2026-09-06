@@ -34,7 +34,7 @@
 
 ## 状态
 
-- M0 文档骨架 ✅ / M1 IL ✅ / M2 档案仓库+对话内核 ✅ / M3 复现+相似度 ✅ / M5 真实 LLM 闭环验证 ✅（详见 `docs/04-plan.md`）。
+- M0 文档骨架 ✅ / M1 IL ✅ / M2 档案仓库+对话内核 ✅ / M3 复现+相似度 ✅ / M4 端到端演示 ✅ / M5 真实 LLM 闭环验证 ✅（详见 `docs/04-plan.md`）。
 - 技术栈：Go。Provider：`deepseek`（真实，OpenAI 兼容协议，可扩展其他模型）。
 - 运行需 `.env` 提供 `DEEPSEEK_API_KEY_A/B`（文件已 gitignore，不入库）。
 
@@ -47,17 +47,22 @@ go run ./cmd/intent-lang verify --key A --msg "加上乘法"
     # 单轮遵守度检查：看模型对这份档案的重写是否合法
 go run ./cmd/intent-lang repro  --key B --archive .intent/archive.last.intent --out artifact.py
     # 失忆复现：仅凭档案重建产物
+go run ./cmd/intent-lang accept --archive x.intent --artifact artifact.py
+    # ACCEPT 行为验收：LLM 将验收用例翻译为可执行测试并运行（输出 PASS/FAIL/TOTAL）
+go run ./cmd/intent-lang demo --script turns.txt --repo .intent-demo
+    # 端到端 golden path：key A 建档 → 删会话 → key B 复现 → ACCEPT 验收 → SNIPPET 点名检查
 go run ./cmd/intent-lang compare --ref a.py --cand b.py --threshold 0.95 --fidelity structure
-    # 复现相似度报告（LCS diff + 归一化分数；behavior 层改用 ACCEPT 行为验收）
+    # 形态对比（LCS diff + 分数；behavior 层改用 ACCEPT 行为验收）
 go run ./cmd/intent-lang log / show <id> / rollback <id> --repo .intent
     # 档案版本管理：提交历史 / 查看某 commit / 回滚 HEAD
 ```
 
-CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。非法档案输出自动带纠正指令重试（`--retry N`，默认 2）。
+CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。非法档案输出自动带纠正指令重试（`--retry N`，默认 2）。`accept`/`demo` 需要本机装有 `python`（验收脚本以标准库运行产物）。
 
 ## 验证证据
 
-`testdata/calculator_llm_verified.intent`：真实 deepseek 三轮对话产出的档案；`testdata/artifact_verified.py`：key B 仅凭该档案重建的产物，ACCEPT 黑盒用例全数通过。
+- `testdata/calculator_llm_verified.intent`：真实 deepseek 三轮对话产出的档案；`testdata/artifact_verified.py`：key B 仅凭该档案重建的产物，ACCEPT 黑盒用例全数通过。
+- `testdata/demo_calc_archive.intent`：7 轮真实对话产出的档案（`docs/04-plan.md` M4 demo）；`testdata/demo_calc_artifact.py`：key B 失忆复现产物，ACCEPT 行为验收 10/10 通过。
 
 ## 路线
 

@@ -55,17 +55,21 @@
 - similarity 单测通过（identical=1.0、disjoint=0、partial 区间、Pass 阈值）。
 - 真实双 key 对比实验完成并归档结论如上。
 
-## M4 — 端到端演示与校准（当前）
+## M4 — 端到端演示与校准（已完成）
 
 **内容**
-- 一条 `go run` / 脚本演示完整"计算器 golden path"（对应场景 1 全步骤）。
-- 校准相似度阈值与报告格式。
-- 补齐 README 使用说明。
+- `accept` 命令：ACCEPT 自动行为验收器——LLM 把档案 ACCEPT 用例翻译成可执行测试脚本（每个用例独立启动产物做子串断言），本机运行输出 PASS/FAIL/TOTAL。
+- `demo` 命令：全自动 golden path——key A 从脚本文件多轮建档 → 删会话 → key B 仅凭档案复现 → ACCEPT 验收 → SNIPPET 点名行存在性检查。
+- 校准与实测发现（重要）：
+  1. **子进程编码**：Windows 下产物中文输出按 GBK，测试端需 `encoding='utf-8', errors='replace'` + `PYTHONIOENCODING=utf-8`，否则 UnicodeDecodeError 让 stdout=None。
+  2. **规格矛盾会被验收器抓到**：点名锁定 `.strip()` 的结构与"含空格非法"契约冲突时，产物选 strip 导致 A7 失败——验收器正确暴露了档案自相矛盾（demo_turns 已修正为"内部空格非法"）。
+  3. 生成的测试脚本质量是验收可信度的关键，AcceptTestPrompt 经多轮迭代（独立进程/子串匹配/编码/try-except 包裹）后稳定。
 
 **验收**
-- 新人按 README 可在离线状态复现 demo 与全部报告。
+- 端到端 demo 全绿：7 轮建档（7 commits）→ key B 复现 → ACCEPT **10/10 通过**（含 `= 8` 格式自适应）；SNIPPET 点名行 `while True: expr = input('> ').strip()` 完整出现在复现产物。
+- 证据归档：`testdata/demo_calc_archive.intent`（7 轮真实档案）、`testdata/demo_calc_artifact.py`（key B 复现产物）。
 
-## M5 — 真实 LLM 接入（进行中，已提前验证核心闭环）
+## M5 — 真实 LLM 接入（已完成核心验证，见下）
 
 **已完成**
 - `provider/deepseek.go`：DeepSeek（OpenAI 兼容）Provider；`Mode=write` 时强制 JSON 双通道输出，`Mode=repro` 时输出纯产物；返回前对 intent_update 做 il 解析+校验+规范化。

@@ -38,6 +38,10 @@ func run() error {
 		return repro(os.Args[2:])
 	case "compare":
 		return compare(os.Args[2:])
+	case "accept":
+		return accept(os.Args[2:])
+	case "demo":
+		return demo(os.Args[2:])
 	case "log":
 		return cmdLog(os.Args[2:])
 	case "show":
@@ -74,11 +78,14 @@ func openStore(f map[string]string) (*archive.Store, error) {
 }
 
 func makeProvider(f map[string]string) (provider.Provider, error) {
-	keyEnv := "DEEPSEEK_API_KEY_A"
-	if f["key"] == "B" {
-		keyEnv = "DEEPSEEK_API_KEY_B"
+	return provider.NewDeepSeekFromEnv(envKeyFor(f["key"])), nil
+}
+
+func envKeyFor(key string) string {
+	if key == "B" {
+		return "DEEPSEEK_API_KEY_B"
 	}
-	return provider.NewDeepSeekFromEnv(keyEnv), nil
+	return "DEEPSEEK_API_KEY_A"
 }
 
 func retryProvider(p provider.Provider, f map[string]string) provider.Provider {
