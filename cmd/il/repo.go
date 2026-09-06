@@ -109,7 +109,7 @@ func cmdRollback(args []string) error {
 	if err := store.SetHead(c.ID); err != nil {
 		return err
 	}
-	out := filepath.Join(store.Dir(), "archive.last.il")
+	out := filepath.Join(store.ArchiveDir(), "archive.last.il")
 	if err := os.WriteFile(out, []byte(c.Archive), 0o644); err != nil {
 		return err
 	}

@@ -128,3 +128,36 @@ func TestSetHeadRollback(t *testing.T) {
 		t.Error("later commit should still be retrievable after rollback")
 	}
 }
+
+func TestOpenArchiveIsolation(t *testing.T) {
+	dir := t.TempDir()
+	common, _ := OpenArchive(dir, "common")
+	app, _ := OpenArchive(dir, "app")
+	cv := mustParse(t, testDoc("R1: common rule"))
+	if _, err := common.Append("init", "建 common", "", cv, "ok", []string{"spec: v2.0", "commits: 1"}); err != nil {
+		t.Fatal(err)
+	}
+	av := mustParse(t, testDoc("R1: app rule"))
+	if _, err := app.Append("init", "建 app", "", av, "ok", nil); err != nil {
+		t.Fatal(err)
+	}
+	cl, _ := common.Log()
+	al, _ := app.Log()
+	if len(cl) != 1 || len(al) != 1 {
+		t.Fatalf("isolation broken: common=%d app=%d", len(cl), len(al))
+	}
+	def, _ := OpenArchive(dir, "main")
+	if dl, _ := def.Log(); len(dl) != 0 {
+		t.Error("default archive should be empty in fresh repo")
+	}
+	names, _ := app.ListArchives()
+	found := false
+	for _, n := range names {
+		if n == "common" || n == "app" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("ListArchives missing named archives: %v", names)
+	}
+}

@@ -19,25 +19,73 @@ type Commit struct {
 	Time    time.Time `json:"time"`
 }
 
+// DefaultName is the archive name used when none is given. It lives at the
+// repo root (keeps old single-archive repos working); named archives live in
+// a subdirectory per name.
+const DefaultName = "main"
+
 type Store struct {
-	dir string
+	dir  string
+	name string // archive name; "" means DefaultName semantics (repo root)
 }
 
 func Open(dir string) (*Store, error) {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	return OpenArchive(dir, DefaultName)
+}
+
+// OpenArchive opens a store scoped to one archive. name=DefaultName maps to
+// the repo root for backward compatibility; other names map to dir/<name>/.
+func OpenArchive(dir, name string) (*Store, error) {
+	if name == "" {
+		name = DefaultName
+	}
+	s := &Store{dir: dir, name: name}
+	if err := os.MkdirAll(s.base(), 0o755); err != nil {
 		return nil, err
 	}
-	return &Store{dir: dir}, nil
+	return s, nil
 }
 
 func (s *Store) Dir() string { return s.dir }
 
+// Name returns the archive name this store is scoped to.
+func (s *Store) Name() string { return s.name }
+
+// ArchiveDir returns the directory holding this archive's state (HEAD + json).
+// For the default archive it equals Dir(); for named archives it is
+// Dir()/name/.
+func (s *Store) ArchiveDir() string { return s.base() }
+
+// base returns the directory holding this archive's HEAD + commits.
+func (s *Store) base() string {
+	if s.name == DefaultName {
+		return s.dir
+	}
+	return filepath.Join(s.dir, s.name)
+}
+
+// ListArchives returns subdirectory archive names in the repo (excluding the
+// default root archive).
+func (s *Store) ListArchives() ([]string, error) {
+	entries, err := os.ReadDir(s.dir)
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, e := range entries {
+		if e.IsDir() && e.Name() != ".git" {
+			names = append(names, e.Name())
+		}
+	}
+	return names, nil
+}
+
 func (s *Store) commitPath(id string) string {
-	return filepath.Join(s.dir, id+".json")
+	return filepath.Join(s.base(), id+".json")
 }
 
 func (s *Store) HeadID() (string, error) {
-	data, err := os.ReadFile(filepath.Join(s.dir, "HEAD"))
+	data, err := os.ReadFile(filepath.Join(s.base(), "HEAD"))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil
@@ -48,7 +96,7 @@ func (s *Store) HeadID() (string, error) {
 }
 
 func (s *Store) setHead(id string) error {
-	return os.WriteFile(filepath.Join(s.dir, "HEAD"), []byte(id), 0o644)
+	return os.WriteFile(filepath.Join(s.base(), "HEAD"), []byte(id), 0o644)
 }
 
 // SetHead moves HEAD to an existing commit id (used for rollback). It does not

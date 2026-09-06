@@ -20,15 +20,15 @@ func repro(args []string) error {
 	p = retryProvider(p, f)
 
 	archiveFile := f["archive"]
-	if archiveFile == "" {
-		return fmt.Errorf("repro requires --archive <file.il>")
+	if archiveFile == "" && f["name"] == "" && f["repo"] == "" {
+		return fmt.Errorf("repro requires --archive <file.il> 或 --repo <dir> [--name <档案名>]")
 	}
-	data, err := os.ReadFile(archiveFile)
+	resolved, err := loadResolvedSource(f)
 	if err != nil {
-		return err
+		return fmt.Errorf("load: %w", err)
 	}
 
-	doc, err := il.Parse(string(data))
+	doc, err := il.Parse(resolved)
 	if err != nil {
 		return fmt.Errorf("archive: %w", err)
 	}
@@ -50,8 +50,11 @@ func repro(args []string) error {
 	out := strings.TrimSpace(resp.Reply)
 	outFile := f["out"]
 	if outFile == "" {
-		base := strings.TrimSuffix(filepath.Base(archiveFile), filepath.Ext(archiveFile))
-		if base == "" || base == archiveFile {
+		base := f["name"]
+		if archiveFile != "" {
+			base = strings.TrimSuffix(filepath.Base(archiveFile), filepath.Ext(archiveFile))
+		}
+		if base == "" {
 			base = "artifact"
 		}
 		outFile = base + artifactExt(doc.HeaderRaw["TARGET"])

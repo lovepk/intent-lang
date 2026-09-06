@@ -135,7 +135,10 @@
 - ✅ il.ScanRefs/ScanRefsAll + lint 规则（引用出现在禁止段 → error）。
 - ✅ internal/refs：Resolve（递归物化 + 循环检测 + 版本校验 + 来源标注），单测覆盖简单/嵌套/循环/版本错/缺失。
 - ✅ SpecPrompt 引用说明；SpecVersion 升 v2.0；VS Code grammar 高亮 <ref>。
-- ⏳ 待做：流程接入——archive 仓库多档案（每档案独立 commit 链），repro/lint/chat 喂 LLM 前调用 Resolve 展开。
+- ✅ archive 多档案：OpenArchive(dir,name) 独立 commit 链；Store.ArchiveDir/ListArchives；兼容默认 main 存根。
+- ✅ CLI：chat/lint/repro/log/show/rollback 支持 --name 档案；repro/lint 从仓库读；repro 喂 LLM 前 Resolve 展开引用。
+- ✅ 真实验证：建 common（共享错误规则）→ 建 app 引用 <ref: common#R1@1.0> → repro app 展开引用 → 产物实现 common 规则，行为验收 3/3 通过。
+- 待做：accept 接入展开；跨仓库依赖（远期）。
 
 ## 展望（超出当前范围，仅记录）
 

@@ -75,7 +75,11 @@ func openStore(f map[string]string) (*archive.Store, error) {
 	if dir == "" {
 		dir = ".il"
 	}
-	return archive.Open(dir)
+	name := f["name"]
+	if name == "" {
+		name = archive.DefaultName
+	}
+	return archive.OpenArchive(dir, name)
 }
 
 func makeProvider(f map[string]string) (provider.Provider, error) {
@@ -152,7 +156,7 @@ func chat(args []string) error {
 	}
 	stats := newStats()
 
-	fmt.Printf("il chat via %s（repo: %s）— 输入需求；空行或 exit 退出\n", p.Name(), store.Dir())
+	fmt.Printf("il chat [%s] via %s（repo: %s）— 输入需求；空行或 exit 退出\n", store.Name(), p.Name(), store.Dir())
 	for {
 		fmt.Print("> ")
 		if !scanner.Scan() {
@@ -212,7 +216,7 @@ func chat(args []string) error {
 	}
 
 	if cur != "" {
-		out := filepath.Join(store.Dir(), "archive.last.il")
+		out := filepath.Join(store.ArchiveDir(), "archive.last.il")
 		if err := os.WriteFile(out, []byte(cur), 0o644); err != nil {
 			return err
 		}

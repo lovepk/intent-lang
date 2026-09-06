@@ -21,8 +21,17 @@
 **全局约定**：
 - `--key A|B`：选哪个凭据（默认 A）。A 通常当"建档端"，B 当"复现端"（跨模型验证）。
 - `--repo <dir>`：档案仓库目录（默认 `.il`）。chat/log/show/rollback/demo 用。
+- `--name <档案名>`：操作哪个档案（v2 多档案）。默认 `main` 存仓库根；命名档案存 `<repo>/<name>/`，各自独立 commit 链，可互相用 `<ref: name#entry@ver>` 引用。
 - `--retry N`：非法输出自动带纠正指令重试次数（默认 2，chat/repro/accept/lint 生效）。
 - 位置参数：`show <id>` / `rollback <id>` / `lint <file.il>` 可把 id/路径直接放命令后。
+
+**多档案示例**（共享规范 + 引用）：
+```sh
+il chat --name common          # 建共享规范（如统一错误处理）
+il chat --name app             # 建应用，其条目可写 <ref: common#R1@1.0>
+il lint --repo .il --name app  # 检查 app 源档案
+il repro --repo .il --name app # 从仓库读 app、自动展开 <ref> 成自包含档案再复现
+```
 
 ---
 

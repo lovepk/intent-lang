@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"intent-lang/internal/il"
 	"intent-lang/internal/provider"
@@ -11,18 +10,17 @@ import (
 
 func lint(args []string) error {
 	f := flags(args)
-	archiveFile := f["archive"]
-	if archiveFile == "" {
-		archiveFile = positionalArg(args)
+	if f["archive"] == "" {
+		f["archive"] = positionalArg(args)
 	}
-	if archiveFile == "" {
-		return fmt.Errorf("lint requires --archive <file.il>")
+	if f["archive"] == "" && f["repo"] == "" && f["name"] == "" {
+		return fmt.Errorf("lint requires --archive <file.il> 或 --repo <dir> [--name <档案名>]")
 	}
-	data, err := os.ReadFile(archiveFile)
+	source, err := loadSourceRaw(f)
 	if err != nil {
 		return err
 	}
-	doc, err := il.Parse(string(data))
+	doc, err := il.Parse(source)
 	if err != nil {
 		return fmt.Errorf("parse: %w", err)
 	}
