@@ -40,8 +40,8 @@
 |------|------|------|
 | `il` | 意图语言：档案 B 的解析、序列化、校验、规范化（canonical form，供 diff）、META 剥离/注入（StripMeta/WithMeta）、SpecPrompt/ReproPrompt。 | `internal/il/` |
 | `provider` | LLM 抽象：`Provider` 接口 + `deepseek`（真实）+ `Retry` 装饰器 + `StripFence`。 | `internal/provider/` |
-| `archive` | 档案仓库：commit 链持久化（`.intent/` 目录）、自动 commit message 摘要、log/show/rollback。 | `internal/archive/` |
-| `cli` | 命令行入口：`chat`/`verify`/`repro`/`compare`/`accept`/`lint`/`demo`/`log`/`show`/`rollback`。 | `cmd/intent-lang/` |
+| `archive` | 档案仓库：commit 链持久化（`.il/` 目录）、自动 commit message 摘要、log/show/rollback。 | `internal/archive/` |
+| `cli` | 命令行入口：`chat`/`verify`/`repro`/`compare`/`accept`/`lint`/`demo`/`log`/`show`/`rollback`。 | `cmd/il/` |
 | `docs` | 文档：本文与目标/场景/规范/计划。 | `docs/` |
 
 ## 3. 核心概念与数据流
@@ -99,7 +99,7 @@ commit id: c-2   B@v0.2   "feat: multiply"            ←用户: 加乘法
 commit id: c-3   B@v1.0   "feat: gui tkinter grid"    ←用户: 改GUI
 ```
 
-支持操作：`log`、`show <id>`、`rollback <id>`、`export <id> > b.intent`。
+支持操作：`log`、`show <id>`、`rollback <id>`、`export <id> > b.il`。
 
 ## 4. Provider 抽象
 
@@ -184,7 +184,7 @@ intent-lang/
 │   ├── 03-design.md
 │   ├── il-spec.md
 │   └── 04-plan.md
-├── cmd/intent-lang/   # main / chat / verify / repro / compare / accept / lint / demo / repo(log,show,rollback) / dotenv
+├── cmd/il/   # main / chat / verify / repro / compare / accept / lint / demo / repo(log,show,rollback) / dotenv
 ├── internal/
 │   ├── il/            # 解析/校验/规范化/Meta保护/提示词
 │   ├── provider/      # 接口 + deepseek + retry + strip

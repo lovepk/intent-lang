@@ -22,7 +22,7 @@ func main() {
 
 func run() error {
 	if len(os.Args) < 2 {
-		return fmt.Errorf("usage: intent-lang <chat|verify|repro|compare|accept|lint|demo|log|show|rollback> [options]")
+		return fmt.Errorf("usage: il <chat|verify|repro|compare|accept|lint|demo|log|show|rollback> [options]")
 	}
 	cmd := os.Args[1]
 
@@ -73,7 +73,7 @@ func flags(args []string) map[string]string {
 func openStore(f map[string]string) (*archive.Store, error) {
 	dir := f["repo"]
 	if dir == "" {
-		dir = ".intent"
+		dir = ".il"
 	}
 	return archive.Open(dir)
 }
@@ -152,7 +152,7 @@ func chat(args []string) error {
 	}
 	stats := newStats()
 
-	fmt.Printf("intent-lang chat via %s（repo: %s）— 输入需求；空行或 exit 退出\n", p.Name(), store.Dir())
+	fmt.Printf("il chat via %s（repo: %s）— 输入需求；空行或 exit 退出\n", p.Name(), store.Dir())
 	for {
 		fmt.Print("> ")
 		if !scanner.Scan() {
@@ -209,7 +209,7 @@ func chat(args []string) error {
 	}
 
 	if cur != "" {
-		out := filepath.Join(store.Dir(), "archive.last.intent")
+		out := filepath.Join(store.Dir(), "archive.last.il")
 		if err := os.WriteFile(out, []byte(cur), 0o644); err != nil {
 			return err
 		}

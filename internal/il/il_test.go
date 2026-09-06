@@ -8,9 +8,9 @@ import (
 
 func loadTestDoc(t *testing.T) string {
 	t.Helper()
-	data, err := os.ReadFile("../../testdata/calculator.intent")
+	data, err := os.ReadFile("../../testdata/calculator.il")
 	if err != nil {
-		t.Skipf("testdata not tracked in git (calculator.intent): %v", err)
+		t.Skipf("testdata not tracked in git (calculator.il): %v", err)
 	}
 	return string(data)
 }
@@ -36,8 +36,8 @@ func TestParseValidArchive(t *testing.T) {
 
 func TestParseRealLLMVerifiedArchive(t *testing.T) {
 	files := []string{
-		"../../testdata/calculator_llm_verified.intent",
-		"../../testdata/demo_calc_archive.intent",
+		"../../testdata/calculator_llm_verified.il",
+		"../../testdata/demo_calc_archive.il",
 	}
 	if !allExist(t, files) {
 		t.Skip("testdata not tracked in git; skipping real-archive regression")
@@ -71,7 +71,7 @@ func allExist(t *testing.T, files []string) bool {
 }
 
 func TestParseRealLLMDecisionsPresent(t *testing.T) {
-	file := "../../testdata/calculator_llm_verified.intent"
+	file := "../../testdata/calculator_llm_verified.il"
 	data, err := os.ReadFile(file)
 	if err != nil {
 		t.Skipf("testdata not tracked in git (%s)", file)

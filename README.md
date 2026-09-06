@@ -44,22 +44,22 @@
 ## 用法
 
 ```sh
-go run ./cmd/intent-lang chat  --key A --repo .intent
+go run ./cmd/il chat  --key A --repo .il
     # 交互式双通道对话：输入需求 → reply + 档案增量更新，每次变更写一条 commit；
     # 退出时打印规范遵守统计（validate 拒绝类型 + lint 位置计数，供语言 v2 演进参考）
-go run ./cmd/intent-lang verify --key A --msg "加上乘法"
+go run ./cmd/il verify --key A --msg "加上乘法"
     # 单轮遵守度检查：看模型对这份档案的重写是否合法
-go run ./cmd/intent-lang repro  --key B --archive .intent/archive.last.intent --out artifact.py
+go run ./cmd/il repro  --key B --archive .il/archive.last.il --out artifact.py
     # 失忆复现：仅凭档案重建产物
-go run ./cmd/intent-lang accept --archive x.intent --artifact artifact.py
+go run ./cmd/il accept --archive x.il --artifact artifact.py
     # ACCEPT 行为验收：LLM 将验收用例翻译为可执行测试并运行（输出 PASS/FAIL/TOTAL）
-go run ./cmd/intent-lang demo --script turns.txt --repo .intent-demo
+go run ./cmd/il demo --script turns.txt --repo .il-demo
     # 端到端 golden path：key A 建档 → 删会话 → key B 复现 → ACCEPT 验收 → SNIPPET 点名检查
-go run ./cmd/intent-lang compare --ref a.py --cand b.py --threshold 0.95 --fidelity structure
+go run ./cmd/il compare --ref a.py --cand b.py --threshold 0.95 --fidelity structure
     # 形态对比（LCS diff + 分数；behavior 层改用 ACCEPT 行为验收）
-go run ./cmd/intent-lang lint --archive x.intent            # 确定性结构检查（快/零成本）
-go run ./cmd/intent-lang lint --llm --key A --archive x.intent   # + LLM 单轮语义复查（找需理解力的矛盾，领域无关）
-go run ./cmd/intent-lang log / show <id> / rollback <id> --repo .intent
+go run ./cmd/il lint --archive x.il            # 确定性结构检查（快/零成本）
+go run ./cmd/il lint --llm --key A --archive x.il   # + LLM 单轮语义复查（找需理解力的矛盾，领域无关）
+go run ./cmd/il log / show <id> / rollback <id> --repo .il
     # 档案版本管理：提交历史 / 查看某 commit / 回滚 HEAD
 ```
 
@@ -67,7 +67,7 @@ CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。非法档案输出�
 
 ## 文件格式与编辑器支持
 
-- 档案文件后缀：**`.intent`**（规范见 `docs/il-spec.md` §2.1）。
+- 档案文件后缀：**`.il`**（规范见 `docs/il-spec.md` §2.1）。
 - **VS Code**：扩展在 `editor/vscode-il/`。打包 + 安装：
   ```sh
   cd editor/vscode-il && npx @vscode/vsce package --out ../intent-lang-il.vsix
@@ -79,8 +79,8 @@ CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。非法档案输出�
 
 ## 验证证据
 
-- `testdata/calculator_llm_verified.intent`：真实 deepseek 三轮对话产出的档案；`testdata/artifact_verified.py`：key B 仅凭该档案重建的产物，ACCEPT 黑盒用例全数通过。
-- `testdata/demo_calc_archive.intent`：7 轮真实对话产出的档案（`docs/04-plan.md` M4 demo）；`testdata/demo_calc_artifact.py`：key B 失忆复现产物，ACCEPT 行为验收 10/10 通过。
+- `testdata/calculator_llm_verified.il`：真实 deepseek 三轮对话产出的档案；`testdata/artifact_verified.py`：key B 仅凭该档案重建的产物，ACCEPT 黑盒用例全数通过。
+- `testdata/demo_calc_archive.il`：7 轮真实对话产出的档案（`docs/04-plan.md` M4 demo）；`testdata/demo_calc_artifact.py`：key B 失忆复现产物，ACCEPT 行为验收 10/10 通过。
 
 ## 路线
 

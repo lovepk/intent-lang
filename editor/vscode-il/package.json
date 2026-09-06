@@ -14,7 +14,7 @@
       {
         "id": "intent",
         "aliases": ["Intent Lang", "IL", "intent"],
-        "extensions": [".intent"],
+        "extensions": [".il"],
         "configuration": "./language-configuration.json"
       }
     ],

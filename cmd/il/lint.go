@@ -16,7 +16,7 @@ func lint(args []string) error {
 		archiveFile = positionalArg(args)
 	}
 	if archiveFile == "" {
-		return fmt.Errorf("lint requires --archive <file.intent>")
+		return fmt.Errorf("lint requires --archive <file.il>")
 	}
 	data, err := os.ReadFile(archiveFile)
 	if err != nil {

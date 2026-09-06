@@ -85,7 +85,7 @@ func demo(args []string) error {
 	if cur == "" {
 		return fmt.Errorf("demo: no archive produced")
 	}
-	archiveOut := filepath.Join(repoDir, "archive.last.intent")
+	archiveOut := filepath.Join(repoDir, "archive.last.il")
 	if err := os.WriteFile(archiveOut, []byte(cur), 0o644); err != nil {
 		return err
 	}

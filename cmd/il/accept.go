@@ -22,7 +22,7 @@ func accept(args []string) error {
 	archiveFile := f["archive"]
 	artifactFile := f["artifact"]
 	if archiveFile == "" || artifactFile == "" {
-		return fmt.Errorf("accept requires --archive <file.intent> --artifact <artifact>")
+		return fmt.Errorf("accept requires --archive <file.il> --artifact <artifact>")
 	}
 	archiveData, err := os.ReadFile(archiveFile)
 	if err != nil {

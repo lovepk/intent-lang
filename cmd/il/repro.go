@@ -21,7 +21,7 @@ func repro(args []string) error {
 
 	archiveFile := f["archive"]
 	if archiveFile == "" {
-		return fmt.Errorf("repro requires --archive <file.intent>")
+		return fmt.Errorf("repro requires --archive <file.il>")
 	}
 	data, err := os.ReadFile(archiveFile)
 	if err != nil {

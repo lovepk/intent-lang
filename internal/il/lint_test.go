@@ -85,7 +85,7 @@ func TestLintString(t *testing.T) {
 }
 
 func TestLintPassOnDemoFixture(t *testing.T) {
-	doc := parseOK(t, readFixture(t, "demo_calc_archive.intent"))
+	doc := parseOK(t, readFixture(t, "demo_calc_archive.il"))
 	if errs := doc.Validate(); len(errs) != 0 {
 		t.Fatalf("demo fixture must validate: %v", errs)
 	}

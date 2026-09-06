@@ -8,7 +8,7 @@
 **产出**
 - 目录骨架、`go.mod`。
 - 本文档体系：`01-goals` / `02-scenarios` / `03-design` / `il-spec` / `04-plan`。
-- `testdata/calculator.intent` 示例档案（用于贯穿后续测试）。
+- `testdata/calculator.il` 示例档案（用于贯穿后续测试）。
 
 **验收**
 - 文档评审通过；计算器示例档案可作为统一测试输入。
@@ -29,12 +29,12 @@
 **内容**
 - `internal/archive`：线性 commit 链仓库，持久化为目录（`HEAD` + `c-<ts>.json`）。支持 `Append`（含 commit message 自动摘要 diff）、`Log`、`Show`、`SetHead` 回滚。
 - META 归 Agent：注入给 LLM 的档案剥离 META，禁止 LLM 输出 META，收到后 Agent 依 diff 重建（真实验证驱动）。
-- CLI 扩展：`chat` 接入仓库（repo 默认 `.intent`，每次档案变更写 commit + 自动 commit message）；新增 `log` / `show` / `rollback <id>`。
+- CLI 扩展：`chat` 接入仓库（repo 默认 `.il`，每次档案变更写 commit + 自动 commit message）；新增 `log` / `show` / `rollback <id>`。
 - 辅助：`provider.Retry` 装饰器（非法输出追加纠正指令重试）、`provider.StripFence`（repro 产物围栏防御清洗）。
 
 **验收**
 - archive 单测：append/head/persist/summarize/rollback 全通过。
-- 端到端（真实 LLM）：3 轮 chat → 3 commits 入 `.intent` → `log` 显示自动摘要 → `rollback` 到 c-1 → repro 重建产物反映历史状态。
+- 端到端（真实 LLM）：3 轮 chat → 3 commits 入 `.il` → `log` 显示自动摘要 → `rollback` 到 c-1 → repro 重建产物反映历史状态。
 - META：真实验证中模型篡改 META 被 Agent 接管流程杜绝。
 
 ## M3 — 复现与相似度（已完成）
@@ -67,7 +67,7 @@
 
 **验收**
 - 端到端 demo 全绿：7 轮建档（7 commits）→ key B 复现 → ACCEPT **10/10 通过**（含 `= 8` 格式自适应）；SNIPPET 点名行 `while True: expr = input('> ').strip()` 完整出现在复现产物。
-- 证据归档：`testdata/demo_calc_archive.intent`（7 轮真实档案）、`testdata/demo_calc_artifact.py`（key B 复现产物）。
+- 证据归档：`testdata/demo_calc_archive.il`（7 轮真实档案）、`testdata/demo_calc_artifact.py`（key B 复现产物）。
 
 ## M6 — 语言规范打磨到 v2（第一批完成；LLM 单轮语义复查定案）
 
@@ -106,12 +106,12 @@
 
 **已完成**
 - `provider/deepseek.go`：DeepSeek（OpenAI 兼容）Provider；`Mode=write` 时强制 JSON 双通道输出，`Mode=repro` 时输出纯产物；返回前对 intent_update 做 il 解析+校验+规范化。
-- 密钥经 `.env`（已 gitignore）承载，经 `cmd/intent-lang/dotenv.go` 加载，不入库。
+- 密钥经 `.env`（已 gitignore）承载，经 `cmd/il/dotenv.go` 加载，不入库。
 - 真实闭环验证（deepseek-chat，两个 key 充当 A/B 两模型）：
   1. **双通道写档案**：3 轮对话（建加减 → 加乘 → 加除/除零处理），模型只读【当前档案+需求】，增量重写档案正确：编号递增 R1→R6、ACCEPT 同步、DECISIONS 记录否决、OPEN 更新 default、META.commits 递增。全程无需历史消息 → 验证"档案即记忆"。
   2. **失忆复现**：删会话后用 key B 仅凭最终档案重建出可运行的 Python 计算器；ACCEPT 黑盒用例全数通过（含负号解析、除零提示、非法输入、多运算符拒绝、向下取整遵守 OPEN.default）。
   3. **artifact 层 GUI 复现**：key A 建 tkinter 计算器档案（FIDELITY structure，SNIPPET 布局）→ key B 重建 3733 字节产物，SNIPPET 按钮矩阵逐字一致、无幻觉除法、左到右求值。
-- 证据归档：`testdata/calculator_llm_verified.intent`（真实 LLM 档案）、`testdata/artifact_verified.py`（复现产物）；`il` 增加回归测试强制真实档案必须通过校验。
+- 证据归档：`testdata/calculator_llm_verified.il`（真实 LLM 档案）、`testdata/artifact_verified.py`（复现产物）；`il` 增加回归测试强制真实档案必须通过校验。
 - CLI：`chat`（交互双通道）/ `verify`（单轮遵守度检查）/ `repro`（档案→产物重建）。
 - 稳定性设施：`provider.Retry`（非法 JSON/档案输出带纠正指令重试，默认 2 次）、`provider.StripFence`（复现产物围栏清洗）。
 - **META 归 Agent**（真实验证驱动）：注入给 LLM 的档案剥离 META、模型被禁止输出 META、收到后由 Agent 依据 diff 重建 META（spec/created/commits/deprecated）。原因：真实模型会篡改 META（把 commits 改 0）。

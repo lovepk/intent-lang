@@ -5,7 +5,7 @@
 
 ## 0. 文件与编辑器
 
-- **后缀**：档案文件用 `.intent`（规范声明，见 `il-spec.md` §2.1）。一个文件 = 一个产物。
+- **后缀**：档案文件用 `.il`（规范声明，见 `il-spec.md` §2.1）。一个文件 = 一个产物。
 - **语法高亮**：仓库 `editor/` 提供 TextMate grammar + VS Code 扩展（`editor/vscode-il/`）。安装方式见 README「编辑器支持」。
 
 ---

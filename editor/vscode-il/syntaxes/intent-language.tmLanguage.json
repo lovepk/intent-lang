@@ -1,6 +1,6 @@
 {
   "scopeName": "source.intent",
-  "fileTypes": ["intent"],
+  "fileTypes": ["il"],
   "name": "Intent Lang (IL)",
   "patterns": [
     { "include": "#comment" },
