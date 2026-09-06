@@ -118,6 +118,23 @@
         {
           "match": "\\b(->)\\b",
           "name": "keyword.operator.mapping.intent"
+        },
+        {
+          "name": "markup.other.reference.intent",
+          "begin": "<ref:",
+          "end": ">",
+          "beginCaptures": { "0": { "name": "punctuation.definition.tag.begin.intent" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.tag.end.intent" } },
+          "patterns": [
+            {
+              "match": "([A-Za-z0-9_.\\-]+)#([RAD?]\\d+)@([A-Za-z0-9_.\\-]+)",
+              "captures": {
+                "1": { "name": "entity.name.type.archive.intent" },
+                "2": { "name": "variable.other.member.intent" },
+                "3": { "name": "constant.numeric.version.intent" }
+              }
+            }
+          ]
         }
       ]
     },

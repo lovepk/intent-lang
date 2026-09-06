@@ -250,7 +250,7 @@ func TestParseContentBeforeSection(t *testing.T) {
 }
 
 func TestMetaStripAndAttach(t *testing.T) {
-	doc, err := Parse("INTENT x@1\nKIND program\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nMETA\n  spec: v1.0\n  commits: 3\n")
+	doc, err := Parse("INTENT x@1\nKIND program\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nMETA\n  spec: v2.0\n  commits: 3\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +258,7 @@ func TestMetaStripAndAttach(t *testing.T) {
 	if noMeta.Section("META") != nil {
 		t.Error("StripMeta should remove META section")
 	}
-	with := noMeta.WithMeta([]string{"spec: v1.0", "commits: 4"})
+	with := noMeta.WithMeta([]string{"spec: v2.0", "commits: 4"})
 	meta := with.Section("META")
 	if meta == nil || len(meta.Lines) != 2 {
 		t.Error("WithMeta should append META lines")

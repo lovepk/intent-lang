@@ -9,7 +9,7 @@ func TestBuildMetaLines(t *testing.T) {
 	lines := buildMetaLines(3, "2026-01-01T00:00:00Z", []string{"R2", "R5"})
 	got := strings.Join(lines, "\n")
 	for _, want := range []string{
-		"spec: v1.0",
+		"spec: v2.0",
 		"created: 2026-01-01T00:00:00Z",
 		"commits: 3",
 		"deprecated: [R2, R5]",
@@ -61,7 +61,7 @@ func TestNextDeprecatedNoChange(t *testing.T) {
 }
 
 func TestParseMetaCarry(t *testing.T) {
-	text := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nMETA\n  spec: v1.0\n  created: 2026-02-02T00:00:00Z\n  commits: 4\n  deprecated: [R2, R7]\n"
+	text := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nMETA\n  spec: v2.0\n  created: 2026-02-02T00:00:00Z\n  commits: 4\n  deprecated: [R2, R7]\n"
 	created, dep := parseMetaCarry(text)
 	if created != "2026-02-02T00:00:00Z" {
 		t.Errorf("created = %q", created)

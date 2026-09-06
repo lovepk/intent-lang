@@ -100,12 +100,12 @@ func TestSetHeadRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	v1 := mustParse(t, testDoc("R1: add"))
-	c1, err := store.Append("init", "a", "", v1, "hi", []string{"spec: v1.0", "commits: 1"})
+	c1, err := store.Append("init", "a", "", v1, "hi", []string{"spec: v2.0", "commits: 1"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	v2 := mustParse(t, testDoc("R1: add", "R2: multiply"))
-	c2, err := store.Append("feat", "b", v1, v2, "hi", []string{"spec: v1.0", "commits: 2"})
+	c2, err := store.Append("feat", "b", v1, v2, "hi", []string{"spec: v2.0", "commits: 2"})
 	if err != nil {
 		t.Fatal(err)
 	}

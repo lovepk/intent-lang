@@ -54,6 +54,15 @@ OPEN
 - DECISIONS/OPEN 每条只允许一句话的简洁表达，禁止长篇推理或自言自语。不要在档案里写"我考虑""可以改成""或者"这类推演过程——档案只记录结论。
 - reject 字段只写【本次讨论中提出过、但被否定的备选方案】。**不要把"改动前的旧状态"写进 reject**——旧状态不是备选；新决定要涵盖它，reject 只放真正被否定的选项。
 
+## 跨档案引用（可选能力）
+- 若某条行为/验收/示例其实属于**另一个档案**（如共享的错误处理规范），不要复制，用引用：
+  <ref: 目标档案名#条目ID@目标版本>
+  例：R3: 错误处理遵循 <ref: common#R3@1.2>
+- 引用只允许出现在 CONTRACT / ACCEPT / ANCHORS。禁止出现在 DECISIONS / OPEN / META（决策和待定是档案私事）。
+- 引用必须带版本；改被引档案是它自己的事，本档案要跟进需显式改 <ref> 版本。
+- 允许在引用前后补充本档案的本地约束（引用不是整行替换）。
+- 系统会在喂给复现端前自动把引用摊开成完整文本，你不需要自己摊开；但写档案时用引用，别复制。
+
 ## 档案编辑规则
 1. 全量重写：intent_update 里总是输出完整的新档案（含未改段），绝不输出片段或 patch。
 2. 改动最小化：只动必要行；未变段落逐字保留。
@@ -77,7 +86,7 @@ declared_changes 是【诚实声明】：
 
 // ReproPrompt is injected when an LLM must rebuild the product from an
 // archive alone (the "失忆复现" scenario).
-const ReproPrompt = `你是产物重建器。下面会给你一份 IL 意图档案（按 v1.0 规范书写）。
+const ReproPrompt = `你是产物重建器。下面会给你一份 IL 意图档案（按 v2.0 规范书写）。
 
 请严格依据档案重建产物：
 1. KIND 决定产物形态，TARGET 决定技术栈与结构。若 TARGET 指明 python@3.12 single-file 等，则交付单个完整源文件。
@@ -114,7 +123,7 @@ const AcceptTestPrompt = `你是验收测试生成器。你会收到：
 // LintPrompt makes an LLM act as the semantic linter of an IL archive. Unlike
 // the deterministic structural Lint(), this catches contradictions that need
 // understanding of arbitrary domain words.
-const LintPrompt = `你是"意图档案编译器"的语义复查层。给你一份按 IL v1.0 规范书写的意图档案，你检查它是否存在【语义矛盾】。
+const LintPrompt = `你是"意图档案编译器"的语义复查层。给你一份按 IL v2.0 规范书写的意图档案，你检查它是否存在【语义矛盾】。
 
 只报告能明确判断的矛盾，不确定的不报。检查方向：
 1. ACCEPT 验收用例是否与 CONTRACT 相矛盾（如 CONTRACT 明确"不支持/不做/禁止"某功能，但 ACCEPT 却在测它；或 ACCEPT 期望的行为与 CONTRACT 描述冲突）。

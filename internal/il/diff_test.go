@@ -56,8 +56,8 @@ func TestCompareEntriesWhitespaceChurnNotModified(t *testing.T) {
 }
 
 func TestCompareEntriesIgnoresMeta(t *testing.T) {
-	before := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nMETA\n  spec: v1.0\n  commits: 1\n"
-	after := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nMETA\n  spec: v1.0\n  commits: 5\n  deprecated: [R2]\n"
+	before := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nMETA\n  spec: v2.0\n  commits: 1\n"
+	after := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nMETA\n  spec: v2.0\n  commits: 5\n  deprecated: [R2]\n"
 	d := CompareEntries(before, after)
 	if len(d.Changed()) != 0 {
 		t.Errorf("meta-only change should not count: %v", d.Changed())

@@ -129,6 +129,14 @@
 - `internal/similarity`：复现相似度报告（M3）。
 - META.deprecated 的 diff 自动计算（当前模型直接删条目，Agent 尚不反写 deprecated 列表）。
 
+## M7 — 多档案引用（进行中：语言侧核心已完成）
+
+- ✅ 语言语法：<ref: name#id@ver> 成为 v2.0 语法元素（il-spec §2.6）；限 CONTRACT/ACCEPT/ANCHORS。
+- ✅ il.ScanRefs/ScanRefsAll + lint 规则（引用出现在禁止段 → error）。
+- ✅ internal/refs：Resolve（递归物化 + 循环检测 + 版本校验 + 来源标注），单测覆盖简单/嵌套/循环/版本错/缺失。
+- ✅ SpecPrompt 引用说明；SpecVersion 升 v2.0；VS Code grammar 高亮 <ref>。
+- ⏳ 待做：流程接入——archive 仓库多档案（每档案独立 commit 链），repro/lint/chat 喂 LLM 前调用 Resolve 展开。
+
 ## 展望（超出当前范围，仅记录）
 
 - 档案库检索（场景 5）；多档案引用；让意图档案被确定性编译器直接消费（脱离 LLM）的探索。

@@ -16,7 +16,8 @@ type Header struct {
 
 // SpecVersion is the current IL language specification version. Archives
 // record it in META.spec; prompts reference it for LLM expectations.
-const SpecVersion = "v1.0"
+// v2.0 adds cross-archive references (<ref>).
+const SpecVersion = "v2.0"
 
 // MetaSpecLine returns the canonical "spec: <version>" line.
 func MetaSpecLine() string { return "spec: " + SpecVersion }

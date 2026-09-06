@@ -143,7 +143,7 @@ OPEN
 
 ```
 META
-  spec: v1.0
+  spec: v2.0
   commits: 7
   deprecated: []
 ```

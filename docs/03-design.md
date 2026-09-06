@@ -133,7 +133,7 @@ type Response struct {
 
 ## 5. 意图语言 (IL) 概要
 
-语言本体权威定义见 `il-spec.md`（v1.0）。设计要点摘录：
+语言本体权威定义见 `il-spec.md`（v2.0）。设计要点摘录：
 
 1. **四条根本原则**：① 消歧优先（只允许"已消歧的事实"）；② 否决与决策是资产（`NO` 否定 + `DECISIONS` 日志）；③ FIDELITY 声明锁定层级（`behavior`/`structure`/`artifact`）；④ 人类可读优先（任何一行不得要求读者"学过编程"）。
 2. **八个段落**：头四段 `INTENT/KIND/FIDELITY/TARGET` + `CONTRACT`(R) / `ANCHORS` / `SNIPPET`(黄金代码) / `ACCEPT`(A) / `DECISIONS`(D) / `OPEN`(?，必带 default) / `META`。
@@ -197,7 +197,7 @@ intent-lang/
 
 ## 8. 开放问题
 
-**已拍板**（写入 il-spec v1.0 与实现）：
+**已拍板**（写入 il-spec v2.0 与实现）：
 
 - 语义解释器 = LLM（始终）；IL 不追求可编译文法。
 - 人类可读性列为第四原则：非程序员无需编程知识即可读懂（il-spec 2.5 对照表约束了传统语法要素的呈现形态）。

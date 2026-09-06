@@ -38,7 +38,7 @@ func (d Diagnostic) String() string {
 }
 
 // refRe matches cross-references to entries: 见R3 / 参见A1 / 参考?2 / 如 D1.
-var refRe = regexp.MustCompile(`(?:见|参见|参考|如|引用)\s*([RAD]\d+|\?\d+)`)
+var dangleRe = regexp.MustCompile(`(?:见|参见|参考|如|引用)\s*([RAD]\d+|\?\d+)`)
 
 // entrySets indexes ids per section kind for dangle checks.
 func entrySets(d *Doc) map[string]map[string]bool {
@@ -134,7 +134,7 @@ func (d *Doc) Lint() []Diagnostic {
 			continue
 		}
 		for _, e := range s.Entries() {
-			for _, m := range refRe.FindAllStringSubmatch(e.Text, -1) {
+			for _, m := range dangleRe.FindAllStringSubmatch(e.Text, -1) {
 				ref := m[1]
 				targetName := sectionForRef(ref)
 				if !sets[targetName][ref] {
@@ -209,6 +209,30 @@ func (d *Doc) Lint() []Diagnostic {
 			Msg:      "没有 ACCEPT 验收用例：行为一致与否无法判定",
 			Fix:      "为核心行为补 A<n> 验收用例，否则复现只能靠猜",
 		})
+	}
+
+	// References: syntax + allowed-section rules (target existence is checked
+	// by the resolver at materialize time, not here).
+	for _, lr := range d.ScanRefsAll() {
+		if !RefAllowed(lr.Section) {
+			out = append(out, Diagnostic{
+				Severity: SevError,
+				Section:  lr.Section,
+				ID:       lr.Entry,
+				Msg:      fmt.Sprintf("此段不允许引用其它档案：%s（引用只能用于 CONTRACT/ACCEPT/ANCHORS）", lr.Ref),
+				Fix:      "把引用的内容改成本地自包含描述，或移动到允许引用的段",
+			})
+			continue
+		}
+		if lr.Ref.Archive == "" || lr.Ref.Version == "" {
+			out = append(out, Diagnostic{
+				Severity: SevError,
+				Section:  lr.Section,
+				ID:       lr.Entry,
+				Msg:      "引用格式非法（缺少档案名或版本）",
+				Fix:      "格式应为 " + RefSyntax(),
+			})
+		}
 	}
 
 	return out

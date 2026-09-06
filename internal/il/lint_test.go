@@ -64,7 +64,7 @@ func TestLintOpenEmptyDefault(t *testing.T) {
 func TestLintClean(t *testing.T) {
 	src := "INTENT x@1\nKIND program\nFIDELITY structure\nTARGET py\n" +
 		"CONTRACT\n  R1: 支持加法和减法\n  R2: 输入非法时提示错误并继续\nACCEPT\n  A1: add(1,2)==3\n  A2: subtract(3,1)==2\n" +
-		"DECISIONS\n  D1: 只支持加减     reject: 乘除     due: 简化\nSNIPPET s\n  def f(): pass\nMETA\n  spec: v1.0\n"
+		"DECISIONS\n  D1: 只支持加减     reject: 乘除     due: 简化\nSNIPPET s\n  def f(): pass\nMETA\n  spec: v2.0\n"
 	doc := parseOK(t, src)
 	ds := doc.Lint()
 	if len(ds) != 0 {
