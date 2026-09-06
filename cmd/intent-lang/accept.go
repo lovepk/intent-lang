@@ -51,7 +51,13 @@ func accept(args []string) error {
 	}
 	fmt.Println("== 生成的验收脚本 ==\n" + script + "\n")
 
-	out, _ := exec.Command("python", "-X", "utf8", tmp, absArtifact).CombinedOutput()
+	// The acceptance harness is a Python script regardless of artifact
+	// language; the interpreter can be overridden via IL_PYTHON.
+	python := os.Getenv("IL_PYTHON")
+	if python == "" {
+		python = "python"
+	}
+	out, _ := exec.Command(python, "-X", "utf8", tmp, absArtifact).CombinedOutput()
 	fmt.Println("== 验收结果 ==")
 	fmt.Print(string(out))
 	return nil

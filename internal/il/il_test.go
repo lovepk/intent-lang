@@ -76,6 +76,41 @@ func readFixture(t *testing.T, name string) string {
 	return string(data)
 }
 
+func TestParseSnippetKeywordLikeContent(t *testing.T) {
+	// Indented lines inside SNIPPET that look like section names must NOT
+	// start a new section (regression for the flush-left section detection).
+	src := "INTENT x@1\nKIND program\nFIDELITY structure\nTARGET any\nCONTRACT\n  R1: a\n" +
+		"SNIPPET core\n  META 42\n  OPEN file\n  CONTRACT something\nACCEPT\n  A1: ok\n"
+	doc, err := Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snip := doc.Section("SNIPPET")
+	if snip == nil || len(snip.Lines) != 3 {
+		t.Fatalf("SNIPPET should hold 3 indented lines, got %+v", snip)
+	}
+	if doc.Section("ACCEPT") == nil {
+		t.Error("ACCEPT section was swallowed")
+	}
+}
+
+func TestParseTopLevelKeywordLineIsNotSection(t *testing.T) {
+	// A flush-left non-section-name line still belongs to the current section.
+	src := "INTENT x@1\nKIND program\nFIDELITY structure\nTARGET any\nCONTRACT\n  R1: a\n" +
+		"SNIPPET core\nwhile True:\n  pass\nACCEPT\n  A1: ok\n"
+	doc, err := Parse(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snip := doc.Section("SNIPPET")
+	if snip == nil || len(snip.Lines) != 2 {
+		t.Fatalf("flush-left code line should stay in SNIPPET, got %+v", snip)
+	}
+	if doc.Section("ACCEPT") == nil {
+		t.Error("ACCEPT swallowed")
+	}
+}
+
 func TestCanonicalRoundTrip(t *testing.T) {
 	src := loadTestDoc(t)
 	doc, err := Parse(src)

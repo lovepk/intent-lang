@@ -156,10 +156,12 @@ func chat(args []string) error {
 		return err
 	}
 	cur := ""
+	createdCarry := ""
+	var deprecated []string
 	if latest != nil {
 		cur = latest.Archive
+		createdCarry, deprecated = parseMetaCarry(cur)
 	}
-	commits := lenLog(store)
 	stats := newStats()
 
 	fmt.Printf("intent-lang chat via %s（repo: %s）— 输入需求；空行或 exit 退出\n", p.Name(), store.Dir())
@@ -192,12 +194,15 @@ func chat(args []string) error {
 				stats.noteValidate(errs)
 				continue
 			}
-			commits++
-			c, err := store.Append(archive.Summarize(beforeRaw, after), msg, beforeRaw, after, resp.Reply, buildMeta(commits))
+			commits := lenLog(store) + 1
+			deprecated = nextDeprecated(deprecated, beforeRaw, after)
+			c, err := store.Append(archive.Summarize(beforeRaw, after), msg, beforeRaw, after, resp.Reply,
+				buildMetaLines(commits, createdCarry, deprecated))
 			if err != nil {
 				return err
 			}
 			cur = c.Archive
+			createdCarry, _ = parseMetaCarry(cur)
 			stats.Commits++
 			if doc, perr := il.Parse(noMeta(cur)); perr == nil {
 				stats.noteLint(doc)
@@ -212,7 +217,7 @@ func chat(args []string) error {
 		if err := os.WriteFile(out, []byte(cur), 0o644); err != nil {
 			return err
 		}
-		fmt.Printf("最终档案已写入 %s（累计 %d 次提交）\n", out, commits)
+		fmt.Printf("最终档案已写入 %s（累计 %d 次提交）\n", out, lenLog(store))
 	}
 	fmt.Print(stats.render())
 	return nil

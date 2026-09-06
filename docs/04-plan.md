@@ -91,6 +91,13 @@
 - **抓到 ACCEPT 运行时验收查不出的契约矛盾**：demo_calc_archive 的 R5（输出"错误：格式应为…"）与 R7/ACCEPT A4-A8（输出"非法输入"）存在历史遗留的两套错误消息冲突——产物实现统一成"非法输入"所以 ACCEPT 全过，但契约层确实不自洽。复查正确报出（这是产物验收的盲区，两条链路互补）。
 - 干净的订单档案（无矛盾）复查应零发现；severity 分级经校准（措辞不一致降 suggestion）。
 
+**低级设计错误全量审计与修复（领域无关性收尾）**
+1. 🔴 **SNIPPET 内容会被段名截断**（解析器文法缺陷）：修复=段头必须顶格，缩进内容永不开启新段；SNIPPET 原文规范格式缩进存储。补 il-spec §2.4 排版文法。单测覆盖（缩进关键词行不再误判）。
+2. 🟠 **META.deprecated 恒为空**（规范-实现不符）：Agent 现依据 before/after 的 CONTRACT 编号差集计算 deprecated 并跨 commit 累积；created 保留首次值。`cmd/meta.go` + 单测。实测发现 LLM 多倾向"改写条目"而非删除，deprecated 主要在真删条目时触发。
+3. 🟡 **accept/repro/demo 硬编码 Python**：repro/demo 按 TARGET 推断产物扩展名（`artifactExt`）；repro 默认名从 archive 文件名推；accept 解释器可经 `IL_PYTHON` 覆盖。
+4. 🟡 **reject 语义只改了一端**：ReproPrompt 消费侧补齐（reject=备选非旧状态；与 CONTRACT 冲突按 reject 优先并在注释标注）；il-spec §3.6 同步。
+5. 🟢 **META.commits 用会话计数**：改用真实链长 `lenLog(store)+1`。
+
 **下一步（M6 续）**
 - 悬空引用/OPEN 收敛提示；历史 reject"旧状态"归一工具。
 - 遵守率跑真实多轮后反哺规范 v2 定稿。

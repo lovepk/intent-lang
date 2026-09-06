@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"intent-lang/internal/il"
@@ -49,7 +50,11 @@ func repro(args []string) error {
 	out := strings.TrimSpace(resp.Reply)
 	outFile := f["out"]
 	if outFile == "" {
-		outFile = "artifact.py"
+		base := strings.TrimSuffix(filepath.Base(archiveFile), filepath.Ext(archiveFile))
+		if base == "" || base == archiveFile {
+			base = "artifact"
+		}
+		outFile = base + artifactExt(doc.HeaderRaw["TARGET"])
 	}
 	if err := os.WriteFile(outFile, []byte(out), 0o644); err != nil {
 		return err

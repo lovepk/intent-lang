@@ -50,7 +50,8 @@ func demo(args []string) error {
 	defer file.Close()
 	sc := bufio.NewScanner(file)
 	sc.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
-	commits := 0
+	createdCarry := ""
+	var deprecated []string
 	for sc.Scan() {
 		msg := strings.TrimSpace(sc.Text())
 		if msg == "" {
@@ -69,12 +70,16 @@ func demo(args []string) error {
 			fmt.Printf("turn: %s\n  reply: %s\n  (档案未变更)\n", msg, resp.Reply)
 			continue
 		}
-		commits++
-		c, err := store.Append(archive.Summarize(cur, resp.IntentUpdate), msg, cur, resp.IntentUpdate, resp.Reply, buildMeta(commits))
+		before := cur
+		after := resp.IntentUpdate
+		deprecated = nextDeprecated(deprecated, before, after)
+		c, err := store.Append(archive.Summarize(before, after), msg, before, after, resp.Reply,
+			buildMetaLines(lenLog(store)+1, createdCarry, deprecated))
 		if err != nil {
 			return err
 		}
 		cur = c.Archive
+		createdCarry, _ = parseMetaCarry(cur)
 		fmt.Printf("turn: %s\n  reply: %s\n  commit %s: %s\n", msg, resp.Reply, c.ID, c.Message)
 	}
 	if cur == "" {
@@ -100,10 +105,7 @@ func demo(args []string) error {
 		return err
 	}
 	artifact := provider.StripFence(reproResp.Reply)
-	artifactFile := filepath.Join(repoDir, "artifact")
-	if strings.Contains(doc.HeaderRaw["TARGET"], "python") || strings.Contains(doc.HeaderRaw["TARGET"], "py") {
-		artifactFile += ".py"
-	}
+	artifactFile := filepath.Join(repoDir, "artifact"+artifactExt(doc.HeaderRaw["TARGET"]))
 	if err := os.WriteFile(artifactFile, []byte(artifact), 0o644); err != nil {
 		return err
 	}
@@ -133,7 +135,7 @@ func demo(args []string) error {
 			}
 		}
 	}
-	fmt.Printf("\n端到端完成：repo=%s  commits=%d\n", repoDir, commits)
+	fmt.Printf("\n端到端完成：repo=%s  commits=%d\n", repoDir, lenLog(store))
 	return nil
 }
 

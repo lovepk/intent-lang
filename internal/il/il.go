@@ -113,18 +113,24 @@ func Parse(text string) (*Doc, error) {
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
-		if key := sectionKey(trimmed); key != "" {
-			switch key {
-			case "INTENT", "KIND", "FIDELITY", "TARGET":
-				doc.HeaderRaw[key] = headerValue(trimmed)
-				continue
-			default:
-				cur = &Section{Name: key}
-				if key == "SNIPPET" {
-					cur.Label = headerValue(trimmed)
+		// Only flush-left (unindented) lines may start a new section or header.
+		// Indented lines are always content — this keeps SNIPPET bodies (which
+		// may contain lines that look like keywords) from being split.
+		flushLeft := line[0] != ' ' && line[0] != '\t'
+		if flushLeft {
+			if key := sectionKey(trimmed); key != "" {
+				switch key {
+				case "INTENT", "KIND", "FIDELITY", "TARGET":
+					doc.HeaderRaw[key] = headerValue(trimmed)
+					continue
+				default:
+					cur = &Section{Name: key}
+					if key == "SNIPPET" {
+						cur.Label = headerValue(trimmed)
+					}
+					doc.Sections = append(doc.Sections, cur)
+					continue
 				}
-				doc.Sections = append(doc.Sections, cur)
-				continue
 			}
 		}
 		if cur == nil {
@@ -358,4 +364,57 @@ func (d *Doc) WithMeta(lines []string) *Doc {
 	out := d.StripMeta()
 	out.Sections = append(out.Sections, &Section{Name: "META", Lines: append([]string(nil), lines...)})
 	return out
+}
+
+// MetaDeprecated parses the META.deprecated list (format: [R3, R7] or R3, R7).
+func (d *Doc) MetaDeprecated() []string {
+	for _, line := range d.MetaLines() {
+		t := strings.TrimSpace(line)
+		if !strings.HasPrefix(t, "deprecated:") {
+			continue
+		}
+		val := strings.TrimSpace(strings.TrimPrefix(t, "deprecated:"))
+		val = strings.Trim(val, "[]")
+		if val == "" {
+			return nil
+		}
+		parts := strings.Split(val, ",")
+		out := make([]string, 0, len(parts))
+		for _, p := range parts {
+			s := strings.TrimSpace(p)
+			if s != "" {
+				out = append(out, s)
+			}
+		}
+		return out
+	}
+	return nil
+}
+
+// ContractIDs returns the set of R<n> ids present in CONTRACT.
+func (d *Doc) ContractIDs() []string {
+	s := d.Section("CONTRACT")
+	if s == nil {
+		return nil
+	}
+	var out []string
+	for _, e := range s.Entries() {
+		out = append(out, "R"+e.ID)
+	}
+	return out
+}
+
+// FormatDeprecated renders a deprecated list as a META line value, e.g. [R3, R7].
+func FormatDeprecated(list []string) string {
+	var parts []string
+	for _, s := range list {
+		if s == "" {
+			continue
+		}
+		parts = append(parts, strings.TrimPrefix(s, "R"))
+	}
+	if len(parts) == 0 {
+		return "[]"
+	}
+	return "[R" + strings.Join(parts, ", R") + "]"
 }
