@@ -165,7 +165,7 @@ func chat(args []string) error {
 		resp, err := p.Complete(ctx, provider.Request{System: il.SpecPrompt, Archive: beforeDoc, User: msg})
 		if err != nil {
 			fmt.Println("!!", err)
-			stats.noteValidate([]error{err})
+			stats.noteError(err)
 			continue
 		}
 		if strings.TrimSpace(resp.IntentUpdate) == "" {

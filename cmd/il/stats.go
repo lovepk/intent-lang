@@ -7,11 +7,10 @@ import (
 	"intent-lang/internal/il"
 )
 
-// ComplianceStats records how often the LLM produced archives that tripped
-// validation or lint, categorized by message. This feeds back into spec v2
-// decisions (which constraints LLMs violate most).
+// ComplianceStats records generation errors and consistency-lint findings. This
+// feeds back into spec decisions (which constraints LLMs violate most).
 type ComplianceStats struct {
-	ValidateRejections  map[string]int
+	GenerateErrors      map[string]int
 	LintFindings        map[string]int
 	LintErrorCount      int
 	LintSuggestionCount int
@@ -21,15 +20,13 @@ type ComplianceStats struct {
 
 func newStats() *ComplianceStats {
 	return &ComplianceStats{
-		ValidateRejections: map[string]int{},
-		LintFindings:       map[string]int{},
+		GenerateErrors: map[string]int{},
+		LintFindings:   map[string]int{},
 	}
 }
 
-func (s *ComplianceStats) noteValidate(errs []error) {
-	for _, e := range errs {
-		s.ValidateRejections[classify(e.Error())]++
-	}
+func (s *ComplianceStats) noteError(err error) {
+	s.GenerateErrors[classify(err.Error())]++
 }
 
 func (s *ComplianceStats) noteLint(doc *il.Doc) {
@@ -49,26 +46,10 @@ func (s *ComplianceStats) noteLint(doc *il.Doc) {
 }
 
 func classify(msg string) string {
-	switch {
-	case strings.Contains(msg, "missing header"):
-		return "missing header"
-	case strings.Contains(msg, "invalid FIDELITY"):
-		return "invalid fidelity"
-	case strings.Contains(msg, "not increasing"):
-		return "id not increasing"
-	case strings.Contains(msg, "duplicate body"):
-		return "duplicate body"
-	case strings.Contains(msg, "missing default"):
-		return "open missing default"
-	case strings.Contains(msg, "empty section"):
-		return "empty section"
-	case strings.Contains(msg, "duplicate section"):
-		return "duplicate section"
-	case strings.Contains(msg, "JSON"):
+	if strings.Contains(msg, "JSON") {
 		return "invalid json"
-	default:
-		return "other"
 	}
+	return "other"
 }
 
 func (s *ComplianceStats) render() string {
@@ -80,11 +61,11 @@ func (s *ComplianceStats) render() string {
 	if s.Normalizations > 0 {
 		fmt.Fprintf(&b, "L2 记录员触发: %d 次（L1 发现非法/矛盾）\n", s.Normalizations)
 	}
-	b.WriteString("生成/L1 错误(按类型):\n")
-	if len(s.ValidateRejections) == 0 {
+	b.WriteString("生成错误(按类型):\n")
+	if len(s.GenerateErrors) == 0 {
 		b.WriteString("  无\n")
 	}
-	for k, v := range s.ValidateRejections {
+	for k, v := range s.GenerateErrors {
 		fmt.Fprintf(&b, "  %s: %d\n", k, v)
 	}
 	b.WriteString("一致性 Lint 发现(按位置):\n")

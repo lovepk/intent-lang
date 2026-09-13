@@ -22,10 +22,6 @@ const SpecVersion = "v2.0"
 // MetaSpecLine returns the canonical "spec: <version>" line.
 func MetaSpecLine() string { return "spec: " + SpecVersion }
 
-func (h Header) Complete() bool {
-	return h.Intent != "" && h.Kind != "" && h.Fidelity != "" && h.Target != ""
-}
-
 func ValidFidelity(f string) bool {
 	switch f {
 	case "behavior", "structure", "artifact":
@@ -288,8 +284,6 @@ func (d *Doc) Canonical() string {
 	}
 	return b.String()
 }
-
-func (d *Doc) String() string { return d.Canonical() }
 
 // MetaLines returns the raw META section lines, or nil when absent.
 func (d *Doc) MetaLines() []string {
