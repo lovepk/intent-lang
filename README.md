@@ -30,6 +30,7 @@
 | `docs/intent-commands.md` | **CLI 命令参考**：9 个命令用法/参数/工作流 |
 | `docs/intent-spec.md` | 意图语言规范 v2.0（给 LLM 读的完整语言定义） |
 | `docs/intent-keywords.md` | **关键词速查手册（给人类看）**：一词一例、一页总览 |
+| `docs/intent-ecosystem.md` | 应用场景与生态：能用在哪些场景、如何建立生态 |
 
 ## 状态
 
