@@ -4,16 +4,30 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 )
 
-type DeepSeek struct {
+// OpenAIConfig configures a provider that speaks the OpenAI-compatible
+// chat-completions protocol. Any vendor exposing that protocol (DeepSeek,
+// OpenAI, Qwen, a local server, ...) can be used by setting BaseURL/Model.
+type OpenAIConfig struct {
+	Name    string
+	APIKey  string
+	BaseURL string
+	Model   string
+	Timeout time.Duration
+}
+
+// OpenAICompat is the generic transport for OpenAI-compatible endpoints. It
+// only transports the model's draft: validity and self-consistency are the
+// Agent's job (L1 deterministic + L2 recorder). It never rejects, retries or
+// rewrites output — that would be "interference", which the record-only model
+// forbids.
+type OpenAICompat struct {
 	name    string
 	apiKey  string
 	baseURL string
@@ -21,42 +35,24 @@ type DeepSeek struct {
 	client  *http.Client
 }
 
-type DeepSeekConfig struct {
-	APIKey  string
-	BaseURL string
-	Model   string
-	Name    string
-}
-
-func NewDeepSeek(cfg DeepSeekConfig) *DeepSeek {
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = "https://api.deepseek.com"
-	}
-	if cfg.Model == "" {
-		cfg.Model = "deepseek-chat"
-	}
+func NewOpenAICompat(cfg OpenAIConfig) *OpenAICompat {
 	if cfg.Name == "" {
-		cfg.Name = "deepseek"
+		cfg.Name = "openai-compatible"
 	}
-	return &DeepSeek{
+	timeout := cfg.Timeout
+	if timeout == 0 {
+		timeout = 120 * time.Second
+	}
+	return &OpenAICompat{
 		name:    cfg.Name,
 		apiKey:  cfg.APIKey,
 		baseURL: strings.TrimRight(cfg.BaseURL, "/"),
 		model:   cfg.Model,
-		client:  &http.Client{Timeout: 120 * time.Second},
+		client:  &http.Client{Timeout: timeout},
 	}
 }
 
-func NewDeepSeekFromEnv(keyEnv string) *DeepSeek {
-	return NewDeepSeek(DeepSeekConfig{
-		APIKey:  os.Getenv(keyEnv),
-		BaseURL: os.Getenv("DEEPSEEK_BASE_URL"),
-		Model:   os.Getenv("DEEPSEEK_MODEL"),
-		Name:    keyEnv,
-	})
-}
-
-func (d *DeepSeek) Name() string { return d.name }
+func (o *OpenAICompat) Name() string { return o.name }
 
 type chatMessage struct {
 	Role    string `json:"role"`
@@ -79,9 +75,9 @@ type chatResponse struct {
 	} `json:"choices"`
 }
 
-func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) {
-	if d.apiKey == "" {
-		return Response{}, errors.New("deepseek: empty api key")
+func (o *OpenAICompat) Complete(ctx context.Context, req Request) (Response, error) {
+	if o.apiKey == "" {
+		return Response{}, fmt.Errorf("%s: empty api key", o.name)
 	}
 
 	userText := req.User
@@ -90,7 +86,7 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 	}
 
 	msg := chatRequest{
-		Model: d.model,
+		Model: o.model,
 		Messages: []chatMessage{
 			{Role: "system", Content: req.System},
 			{Role: "user", Content: userText},
@@ -105,33 +101,33 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 		return Response{}, err
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, d.baseURL+"/chat/completions", bytes.NewReader(body))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, o.baseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
 		return Response{}, err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+d.apiKey)
+	httpReq.Header.Set("Authorization", "Bearer "+o.apiKey)
 
-	resp, err := d.client.Do(httpReq)
+	resp, err := o.client.Do(httpReq)
 	if err != nil {
-		return Response{}, fmt.Errorf("deepseek: request: %w", err)
+		return Response{}, fmt.Errorf("%s: request: %w", o.name, err)
 	}
 	defer resp.Body.Close()
 
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return Response{}, fmt.Errorf("deepseek: read body: %w", err)
+		return Response{}, fmt.Errorf("%s: read body: %w", o.name, err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return Response{}, fmt.Errorf("deepseek: status %d: %s", resp.StatusCode, truncate(string(raw), 500))
+		return Response{}, fmt.Errorf("%s: status %d: %s", o.name, resp.StatusCode, truncate(string(raw), 500))
 	}
 
 	var cr chatResponse
 	if err := json.Unmarshal(raw, &cr); err != nil {
-		return Response{}, fmt.Errorf("deepseek: decode: %w", err)
+		return Response{}, fmt.Errorf("%s: decode: %w", o.name, err)
 	}
 	if len(cr.Choices) == 0 {
-		return Response{}, errors.New("deepseek: no choices returned")
+		return Response{}, fmt.Errorf("%s: no choices returned", o.name)
 	}
 	content := cr.Choices[0].Message.Content
 
@@ -147,7 +143,7 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 		Reply        string `json:"reply"`
 	}
 	if err := json.Unmarshal([]byte(content), &out); err != nil {
-		return Response{}, fmt.Errorf("deepseek: model did not return valid JSON: %w\nraw: %s", err, truncate(content, 800))
+		return Response{}, fmt.Errorf("%s: model did not return valid JSON: %w\nraw: %s", o.name, err, truncate(content, 800))
 	}
 
 	if req.Mode == ModeLint {
@@ -155,15 +151,11 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 			Findings []Finding `json:"findings"`
 		}
 		if err := json.Unmarshal([]byte(content), &lint); err != nil {
-			return Response{}, fmt.Errorf("deepseek: lint output invalid: %w", err)
+			return Response{}, fmt.Errorf("%s: lint output invalid: %w", o.name, err)
 		}
 		return Response{Findings: lint.Findings}, nil
 	}
 
-	// No IL validation/normalization here: the provider only transports the
-	// model's draft. Validity and self-consistency are the job of the layered
-	// checks in the agent (L1 deterministic, L2 recorder). Rejecting here would
-	// be "interference", which the record-only model forbids.
 	return Response{Reply: out.Reply, IntentUpdate: out.IntentUpdate}, nil
 }
 
@@ -173,3 +165,5 @@ func truncate(s string, n int) string {
 	}
 	return s[:n] + "...(truncated)"
 }
+
+var _ Provider = (*OpenAICompat)(nil)

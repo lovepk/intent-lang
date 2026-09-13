@@ -58,9 +58,10 @@ commit 链让每条需求可追溯来源、可 diff、可回滚（见 `intent-co
 
 > **按 §2 定位（协议而非产品）**，务实重点应从"给 CLI 加功能"转向"**让其他 agent 能直接消费**"：优先把 record / reproduce / verify / lint 包成 **agent 集成面**（如 MCP tool 或库），CLI 退居调试/演示。CLI 层的功能（如多 Provider）只是基础，真正"供其他 agent 使用"还需要一个 agent 可直接调用的接口。
 >
-> **进展**：内核已下沉到 `internal/agent`；`il mcp`（stdio）已提供纯工具面（`il_parse`/`il_lint`/`il_diff`/`il_resolve`/`il_read`/`il_commit`/`il_log` + prompts + resources），默认不调模型（BYOM）；配置 API key 时额外提供可选编排工具（`il_record`/`il_reproduce`/`il_accept`）；`pkg/intentlang` 已提供 Go 嵌入 API。
+> **进展**：内核已下沉到 `internal/agent`；`il mcp`（stdio）已提供纯工具面（`il_parse`/`il_lint`/`il_diff`/`il_resolve`/`il_read`/`il_commit`/`il_log` + prompts + resources），默认不调模型（BYOM）；配置 provider 时额外提供可选编排工具（`il_record`/`il_verify`/`il_reproduce`/`il_accept`/`il_lint_semantic`）；多 Provider（`--provider`，key 可空）已支持；`pkg/intentlang` 已提供 Go 嵌入 API。
 
-### 4.1 多 Provider：证明"可移植"不是口号（P0）
+### 4.1 多 Provider：证明"可移植"不是口号（P0）✅ 已完成
+- **状态**：已落地。`internal/provider` 抽出通用 `OpenAICompat` + `FromEnv`/`Configured`；CLI 全命令支持 `--provider`，`demo` 支持 `--provider-a/--provider-b`，MCP 按 provider 配置决定是否挂载编排工具。**key 可空**（本地 OpenAI 兼容服务）；DeepSeek 变量名不变，向后兼容。
 - **为什么现在**：项目最核心的主张是"档案可移植、不被单一模型锁定"，但目前只有 DeepSeek 一个实现。这是主张成立与否的关键证据，且成本很低。
 - **做什么**：把 `internal/provider/deepseek.go` 里的 OpenAI 兼容协议抽成通用 provider，DeepSeek 退化为一个配置；支持第二个端点/模型（`--provider` 或环境变量）。
 - **验收**：同一份档案，两个不同的 OpenAI 兼容端点各跑一次 `repro → accept`，均通过。
@@ -88,7 +89,7 @@ commit 链让每条需求可追溯来源、可 diff、可回滚（见 `intent-co
 - **成本**：极小。
 
 ### 4.5 明确暂缓（现在做是空转）
-以下**不做**，等 4.1 落地、且有真实外部档案/用户后再谈：
+以下**不做**，等有真实外部档案/用户后再谈：
 
 - 档案注册表 / `<ref>` 远程依赖 / lockfile
 - LSP、托管平台、公开 benchmark

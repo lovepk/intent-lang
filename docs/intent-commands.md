@@ -21,6 +21,7 @@
 
 **全局约定**：
 - `--key A|B`：选哪个凭据（默认 A）。A 通常当"建档端"，B 当"复现端"（跨模型验证）。
+- `--provider <name>`：选哪个 LLM 接入（默认 `deepseek`）。任何 OpenAI 兼容端点都可接入，无需改代码；见下方「Provider 配置」。
 - `--repo <dir>`：档案仓库目录（默认 `.il`）。chat/log/show/rollback/demo 用。
 - `--name <档案名>`：操作哪个档案（v2 多档案）。默认 `main` 存仓库根；命名档案存 `<repo>/<name>/`，各自独立 commit 链，可互相用 `<ref: name#entry@ver>` 引用。
 - 位置参数：`show <id>` / `rollback <id>` / `lint <file.il>` / `fmt <file.il>` 可把 id/路径直接放命令后。
@@ -32,6 +33,29 @@ il chat --name app             # 建应用，其条目可写 <ref: common#R1@1.0
 il lint --repo .il --name app  # 检查 app 源档案
 il repro --repo .il --name app # 从仓库读 app、自动展开 <ref> 成自包含档案再复现
 ```
+
+**Provider 配置**（多模型，无需改代码）：
+- 默认 provider 是 `deepseek`，沿用原有变量：`DEEPSEEK_API_KEY_A/B`、`DEEPSEEK_BASE_URL`、`DEEPSEEK_MODEL`。
+- 任意 OpenAI 兼容端点（OpenAI / Qwen / 本地 Ollama…）用 `--provider <name>` 启用。对 provider `p`（大写为 `P`）与 key `K`，按以下顺序读环境变量：
+  - API key：`INTENT_P_API_KEY_K` > `INTENT_P_API_KEY` > `P_API_KEY_K` > `P_API_KEY`
+  - Base URL：`INTENT_P_BASE_URL` > `P_BASE_URL`
+  - Model：`INTENT_P_MODEL` > `P_MODEL`
+- **key 可空**：显式设置了 Base URL 时允许无 key（本地服务通常不需要）。
+- 例：接 OpenAI 当复现端
+  ```sh
+  # .env: OPENAI_API_KEY_B=sk-...  OPENAI_BASE_URL=https://api.openai.com/v1  OPENAI_MODEL=gpt-4o-mini
+  il repro --provider openai --key B --archive calc.il --out artifact.py
+  ```
+- 例：本地 Ollama（零 key）
+  ```sh
+  # .env: OLLAMA_BASE_URL=http://localhost:11434/v1  OLLAMA_MODEL=qwen2.5:7b
+  il repro --provider ollama --archive calc.il --out artifact.py
+  ```
+- `demo` 支持 `--provider-a` / `--provider-b` 让建档端与复现端用**不同模型**，直接验证跨模型可移植：
+  ```sh
+  il demo --script turns.txt --provider-a deepseek --provider-b openai
+  ```
+- 所有 provider 只负责传输模型草稿，不做校验/拒绝；合法性由 Agent 分层保证（守原则 0）。
 
 ---
 
@@ -138,7 +162,7 @@ il mcp --repo .il      # 启动；请求/响应为换行分隔的 JSON-RPC 2.0
 ```
 
 - **tools（纯、无 LLM）**：`il_parse`、`il_lint`、`il_diff`、`il_resolve`、`il_read`、`il_commit`、`il_log`。
-- **tools（可选编排，会调用模型）**：检测到 API key（`--key A|B`）时额外提供 `il_record`（双通道一轮）、`il_verify`（单轮预览、不落库）、`il_reproduce`（复现）、`il_accept`（验收）、`il_lint_semantic`（LLM 语义复查）；未配 key 则只暴露上面的纯工具。
+- **tools（可选编排，会调用模型）**：检测到 provider 配置（API key，或显式 base URL，见「Provider 配置」）时额外提供 `il_record`（双通道一轮）、`il_verify`（单轮预览、不落库）、`il_reproduce`（复现）、`il_accept`（验收）、`il_lint_semantic`（LLM 语义复查）；未配则只暴露上面的纯工具。
 - **prompts（权威提示词）**：`write`（SpecPrompt）、`repro`、`accept`、`lint`、`normalize`。
 - **resources（只读权威文档）**：`il://spec`、`il://agent`、`il://keywords`。
 - 典型 BYOM 用法：agent 取 `write` prompt → 用自己的 LLM 产出档案 → 调 `il_lint` 校验 → 调 `il_commit` 落库。

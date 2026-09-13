@@ -28,8 +28,23 @@ func demo(args []string) error {
 	}
 	os.RemoveAll(repoDir)
 
-	keyA := provider.NewDeepSeekFromEnv(envKeyFor("A"))
-	keyB := provider.NewDeepSeekFromEnv(envKeyFor("B"))
+	// key A builds, key B reproduces. --provider-a/--provider-b allow the two
+	// ends to be different models (the cross-model portability check).
+	provA, provB := providerName(f), providerName(f)
+	if v := strings.TrimSpace(f["provider-a"]); v != "" {
+		provA = v
+	}
+	if v := strings.TrimSpace(f["provider-b"]); v != "" {
+		provB = v
+	}
+	keyA, err := provider.FromEnv(provA, "A")
+	if err != nil {
+		return err
+	}
+	keyB, err := provider.FromEnv(provB, "B")
+	if err != nil {
+		return err
+	}
 	agA := &agent.Agent{Model: keyA}
 	agB := &agent.Agent{Model: keyB}
 

@@ -15,8 +15,12 @@ import (
 func cmdMCP(args []string) error {
 	f := flags(args)
 	srv := mcp.NewServer(os.Stdin, os.Stdout, f["repo"], f["name"])
-	if keyEnv := envKeyFor(f["key"]); os.Getenv(keyEnv) != "" {
-		srv.WithModel(provider.NewDeepSeekFromEnv(keyEnv))
+	if provider.Configured(f["provider"], f["key"]) {
+		p, err := provider.FromEnv(f["provider"], f["key"])
+		if err != nil {
+			return err
+		}
+		srv.WithModel(p)
 	}
 	return srv.Serve()
 }

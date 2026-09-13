@@ -38,7 +38,7 @@
 ## 状态
 
 - M0 文档骨架 ✅ / M1 IL ✅ / M2 档案仓库+对话内核 ✅ / M3 复现 ✅ / M4 端到端演示 ✅ / M5 真实 LLM 闭环验证 ✅ / M6 规范打磨 ✅ / M7 多档案引用 ✅ / M8 分层一致性 ✅。
-- 技术栈：Go。Provider：`deepseek`（真实，OpenAI 兼容协议，可扩展其他模型）。
+- 技术栈：Go。Provider：默认 `deepseek`；任意 OpenAI 兼容端点（OpenAI/Qwen/本地 Ollama…）用 `--provider <name>` 接入，key 可空（见 `docs/intent-commands.md`「Provider 配置」）。
 - 运行需 `.env` 提供 `DEEPSEEK_API_KEY_A/B`（文件已 gitignore，不入库）。
 
 ## 用法

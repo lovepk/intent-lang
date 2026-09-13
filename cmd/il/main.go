@@ -82,14 +82,14 @@ func sourceOpts(f map[string]string) agent.SourceOpts {
 }
 
 func makeProvider(f map[string]string) (provider.Provider, error) {
-	return provider.NewDeepSeekFromEnv(envKeyFor(f["key"])), nil
+	return provider.FromEnv(f["provider"], f["key"])
 }
 
-func envKeyFor(key string) string {
-	if key == "B" {
-		return "DEEPSEEK_API_KEY_B"
+func providerName(f map[string]string) string {
+	if n := strings.TrimSpace(f["provider"]); n != "" {
+		return n
 	}
-	return "DEEPSEEK_API_KEY_A"
+	return "deepseek"
 }
 
 func lenLog(store *archive.Store) int {
