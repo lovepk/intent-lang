@@ -35,8 +35,6 @@ func run() error {
 		return verify(os.Args[2:])
 	case "repro":
 		return repro(os.Args[2:])
-	case "compare":
-		return fmt.Errorf("compare 已废弃：文本相似度不能衡量意图一致性。请用 accept（ACCEPT 行为验收）或 lint")
 	case "accept":
 		return accept(os.Args[2:])
 	case "lint":
@@ -93,14 +91,6 @@ func envKeyFor(key string) string {
 	return "DEEPSEEK_API_KEY_A"
 }
 
-func retryProvider(p provider.Provider, f map[string]string) provider.Provider {
-	attempts := 2
-	if f["retry"] != "" {
-		fmt.Sscanf(f["retry"], "%d", &attempts)
-	}
-	return provider.NewRetry(p, attempts)
-}
-
 func noMeta(text string) string {
 	if strings.TrimSpace(text) == "" {
 		return ""
@@ -126,7 +116,6 @@ func chat(args []string) error {
 	if err != nil {
 		return err
 	}
-	p = retryProvider(p, f)
 
 	store, err := openStore(f)
 	if err != nil {

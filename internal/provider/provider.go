@@ -7,7 +7,6 @@ import (
 type Mode string
 
 const (
-	ModeWrite     Mode = "write"
 	ModeRepro     Mode = "repro"
 	ModeLint      Mode = "lint"
 	ModeNormalize Mode = "normalize"

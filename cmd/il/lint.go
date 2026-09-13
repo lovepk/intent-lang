@@ -31,7 +31,7 @@ func lint(args []string) error {
 		for _, e := range errs {
 			fmt.Println("  [error] " + e.Error())
 		}
-		fmt.Println("建议先用 Retry 机制让模型修正，或人工修正后再 lint。")
+		fmt.Println("请人工修正后再 lint。")
 		return nil
 	}
 	fmt.Println("语法校验: 通过")
@@ -42,7 +42,6 @@ func lint(args []string) error {
 		if err != nil {
 			return err
 		}
-		p = retryProvider(p, f)
 		ctx := context.Background()
 
 		fmt.Println("\n=== LLM 语义复查（档案内部） ===")

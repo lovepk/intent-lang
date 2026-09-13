@@ -17,7 +17,6 @@ func repro(args []string) error {
 	if err != nil {
 		return err
 	}
-	p = retryProvider(p, f)
 
 	archiveFile := f["archive"]
 	if archiveFile == "" && f["name"] == "" && f["repo"] == "" {

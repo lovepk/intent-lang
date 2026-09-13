@@ -11,7 +11,6 @@ import (
 	"intent-lang/internal/archive"
 	"intent-lang/internal/il"
 	"intent-lang/internal/provider"
-	"intent-lang/internal/similarity"
 )
 
 // demo runs the full golden path non-interactively:
@@ -28,8 +27,8 @@ func demo(args []string) error {
 	}
 	os.RemoveAll(repoDir)
 
-	keyA := provider.NewRetry(provider.NewDeepSeekFromEnv(envKeyFor("A")), 2)
-	keyB := provider.NewRetry(provider.NewDeepSeekFromEnv(envKeyFor("B")), 2)
+	keyA := provider.NewDeepSeekFromEnv(envKeyFor("A"))
+	keyB := provider.NewDeepSeekFromEnv(envKeyFor("B"))
 
 	store, err := archive.Open(repoDir)
 	if err != nil {
@@ -119,9 +118,7 @@ func demo(args []string) error {
 		return err
 	}
 
-	fmt.Println("\n=== 阶段 4: 点名形态对比（SNIPPET 原文是否存在于产物） ===")
-	report := similarity.Compare(cur, artifact)
-	fmt.Printf("档案 vs 产物 行级相似度(仅供参考，主要看 SNIPPET 点名行): %.3f\n", report.Score())
+	fmt.Println("\n=== 阶段 4: 点名形态检查（SNIPPET 原文是否存在于产物） ===")
 	for _, s := range doc.Sections {
 		if s.Name == "SNIPPET" {
 			for _, line := range s.Lines {

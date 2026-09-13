@@ -21,7 +21,6 @@
 - `--key A|B`：选哪个凭据（默认 A）。A 通常当"建档端"，B 当"复现端"（跨模型验证）。
 - `--repo <dir>`：档案仓库目录（默认 `.il`）。chat/log/show/rollback/demo 用。
 - `--name <档案名>`：操作哪个档案（v2 多档案）。默认 `main` 存仓库根；命名档案存 `<repo>/<name>/`，各自独立 commit 链，可互相用 `<ref: name#entry@ver>` 引用。
-- `--retry N`：非法输出自动带纠正指令重试次数（默认 2，chat/repro/accept/lint 生效）。
 - 位置参数：`show <id>` / `rollback <id>` / `lint <file.il>` 可把 id/路径直接放命令后。
 
 **多档案示例**（共享规范 + 引用）：
@@ -96,12 +95,7 @@ il accept --repo .il --name app --artifact app.py
 # 依赖本机 python（验收脚本以标准库跑产物）；解释器可用 IL_PYTHON 覆盖
 ```
 
-### 6. `compare` — 已废弃
-
-> ⚠️ **已废弃**：文本相似度不能衡量意图一致性（实测同一档案不同模型复现，文本相似度可低至 0.12 但行为全对）。
-> 衡量一致性的正确工具是：`accept`（ACCEPT 行为验收）与 `lint`。命令入口仍保留但会提示废弃。
-
-### 7. `demo` — 端到端一键演示
+### 6. `demo` — 端到端一键演示
 
 一条命令跑完整 golden path：key A 从脚本多轮建档 → 删会话 → key B 仅凭档案复现 → ACCEPT 验收 → SNIPPET 点名行检查。
 
@@ -110,7 +104,7 @@ il demo --script turns.txt --repo .il-demo
 # turns.txt：每行一条用户需求
 ```
 
-### 8. `log` / `show` / `rollback` — commit 历史管理
+### 7. `log` / `show` / `rollback` — commit 历史管理
 
 ```sh
 il log --repo .il               # 列出所有 commit（* = HEAD）

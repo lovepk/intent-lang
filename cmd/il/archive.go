@@ -9,11 +9,6 @@ import (
 	"intent-lang/internal/refs"
 )
 
-// openNamedStore opens repo scoped to the --name archive (default main).
-func openNamedStore(f map[string]string) (*archive.Store, error) {
-	return openStore(f)
-}
-
 // repoRefLoader returns a refs.Loader that resolves target archives by name
 // from the same repo (reading each archive's latest committed text).
 func repoRefLoader(store *archive.Store) refs.Loader {
@@ -38,7 +33,7 @@ func loadSourceRaw(f map[string]string) (string, error) {
 		data, err := os.ReadFile(file)
 		return string(data), err
 	}
-	store, err := openNamedStore(f)
+	store, err := openStore(f)
 	if err != nil {
 		return "", err
 	}
@@ -76,7 +71,7 @@ func expandWithRepo(f map[string]string, source string) (string, error) {
 	if len(doc.ScanRefs()) == 0 {
 		return source, nil
 	}
-	store, err := openNamedStore(f)
+	store, err := openStore(f)
 	if err != nil {
 		return "", err
 	}

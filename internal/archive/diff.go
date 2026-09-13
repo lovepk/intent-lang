@@ -10,7 +10,7 @@ import (
 
 // Summarize produces a short commit message from the archive diff between two
 // documents. It reuses il.CompareEntries/EntryBodies so the summary and the
-// change gate share one definition of "what changed" (including header fields,
+// machine diff share one definition of "what changed" (including header fields,
 // ANCHORS and SNIPPET). Falls back to a generic message when nothing changed.
 func Summarize(before, after string) string {
 	d := il.CompareEntries(before, after)

@@ -18,26 +18,22 @@
 一切依赖如下四层：
 
 - **意图档案 B**：用 IL 编写的自包含规格，是唯一的持久资产。
-- **IL 规范**：注入给 LLM 的语言规则（见 `docs/il-spec.md`）。
+- **IL 规范**：注入给 LLM 的语言规则（见 `docs/intent-spec.md`）。
 - **双通道协议**：LLM 每次既回答用户，又像改代码一样产出新一版 B。
-- **复现闭环**：删掉会话后，仅凭【规范 + B】即可重建产物，用 ACCEPT 行为验收 + 文本对比报告双轨验收。
+- **复现闭环**：删掉会话后，仅凭【规范 + B】即可重建产物，用 ACCEPT 行为验收 + SNIPPET 点名检查验收。
 
 ## 文档
 
 | 文档 | 内容 |
 |------|------|
-| `docs/01-goals.md` | 问题、目标、非目标、术语、成功判据 |
-| `docs/02-scenarios.md` | 核心场景（计算器 golden path、跨模型、回滚等） |
-| `docs/03-design.md` | 架构、数据流、Provider 抽象、边界处理 |
-| `docs/04-plan.md` | 里程碑 M0–M6、验收标准、风险 |
-| `docs/05-commands.md` | **CLI 命令参考**：10 个命令用法/参数/工作流 |
-| `docs/il-spec.md` | 意图语言规范 v2.0（给 LLM 读的完整语言定义） |
-| `docs/il-keywords.md` | **关键词速查手册（给人类看）**：一词一例、一页总览 |
-| `docs/04-plan.md` | 里程碑 M0–M5、验收标准、风险 |
+| `docs/intent-goals.md` | 问题、目标、非目标、术语、成功判据 |
+| `docs/intent-commands.md` | **CLI 命令参考**：9 个命令用法/参数/工作流 |
+| `docs/intent-spec.md` | 意图语言规范 v2.0（给 LLM 读的完整语言定义） |
+| `docs/intent-keywords.md` | **关键词速查手册（给人类看）**：一词一例、一页总览 |
 
 ## 状态
 
-- M0 文档骨架 ✅ / M1 IL ✅ / M2 档案仓库+对话内核 ✅ / M3 复现+相似度 ✅ / M4 端到端演示 ✅ / M5 真实 LLM 闭环验证 ✅（详见 `docs/04-plan.md`）。
+- M0 文档骨架 ✅ / M1 IL ✅ / M2 档案仓库+对话内核 ✅ / M3 复现 ✅ / M4 端到端演示 ✅ / M5 真实 LLM 闭环验证 ✅ / M6 规范打磨 ✅ / M7 多档案引用 ✅ / M8 分层一致性 ✅。
 - 技术栈：Go。Provider：`deepseek`（真实，OpenAI 兼容协议，可扩展其他模型）。
 - 运行需 `.env` 提供 `DEEPSEEK_API_KEY_A/B`（文件已 gitignore，不入库）。
 
@@ -56,19 +52,17 @@ go run ./cmd/il accept --archive x.il --artifact artifact.py
     # ACCEPT 行为验收：LLM 将验收用例翻译为可执行测试并运行（输出 PASS/FAIL/TOTAL）
 go run ./cmd/il demo --script turns.txt --repo .il-demo
     # 端到端 golden path：key A 建档 → 删会话 → key B 复现 → ACCEPT 验收 → SNIPPET 点名检查
-go run ./cmd/il compare --ref a.py --cand b.py --threshold 0.95 --fidelity structure
-    # 形态对比（LCS diff + 分数；behavior 层改用 ACCEPT 行为验收）
 go run ./cmd/il lint --archive x.il            # 确定性结构检查（快/零成本）
 go run ./cmd/il lint --llm --key A --archive x.il   # + LLM 单轮语义复查（找需理解力的矛盾，领域无关）
 go run ./cmd/il log / show <id> / rollback <id> --repo .il
     # 档案版本管理：提交历史 / 查看某 commit / 回滚 HEAD
 ```
 
-CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。非法档案输出自动带纠正指令重试（`--retry N`，默认 2）。`accept`/`demo` 需要本机装有 `python`（验收脚本以标准库运行产物）。
+CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。`accept`/`demo` 需要本机装有 `python`（验收脚本以标准库运行产物）。
 
 ## 文件格式与编辑器支持
 
-- 档案文件后缀：**`.il`**（规范见 `docs/il-spec.md` §2.1）。
+- 档案文件后缀：**`.il`**（规范见 `docs/intent-spec.md` §2.1）。
 - **VS Code**：扩展在 `editor/vscode-il/`。打包 + 安装：
   ```sh
   cd editor/vscode-il && npx @vscode/vsce package --out ../intent-lang-il.vsix
@@ -81,8 +75,8 @@ CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。非法档案输出�
 ## 验证证据
 
 - `testdata/calculator_llm_verified.il`：真实 deepseek 三轮对话产出的档案；`testdata/artifact_verified.py`：key B 仅凭该档案重建的产物，ACCEPT 黑盒用例全数通过。
-- `testdata/demo_calc_archive.il`：7 轮真实对话产出的档案（`docs/04-plan.md` M4 demo）；`testdata/demo_calc_artifact.py`：key B 失忆复现产物，ACCEPT 行为验收 10/10 通过。
+- `testdata/demo_calc_archive.il`：7 轮真实对话产出的档案；`testdata/demo_calc_artifact.py`：key B 失忆复现产物，ACCEPT 行为验收 10/10 通过。
 
 ## 路线
 
-M0 文档 → M1 IL → M2 档案仓库+对话内核 → M3 复现+相似度 → M4 端到端演示 → M5 真实 LLM。
+M0 文档 → M1 IL → M2 档案仓库+对话内核 → M3 复现 → M4 端到端演示 → M5 真实 LLM → M6 规范打磨 → M7 多档案引用 → M8 分层一致性。

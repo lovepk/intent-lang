@@ -23,7 +23,7 @@ func (d Diff) Changed() []string {
 }
 
 // EntryBodies maps every "change unit" of an archive to its body text. It is
-// the single source of truth for machine diffs, so the change gate and commit
+// the single source of truth for machine diffs, so the machine diff and commit
 // summaries cannot drift apart. Units:
 //
 //   - R/A/D/? entries in CONTRACT/ACCEPT/DECISIONS/OPEN;
