@@ -58,6 +58,8 @@ go run ./cmd/il demo --script turns.txt --repo .il-demo
     # 端到端 golden path：key A 建档 → 删会话 → key B 复现 → ACCEPT 验收 → SNIPPET 点名检查
 go run ./cmd/il lint --archive x.il            # 确定性结构检查（快/零成本）
 go run ./cmd/il lint --llm --key A --archive x.il   # + LLM 单轮语义复查（找需理解力的矛盾，领域无关）
+go run ./cmd/il lint --archive x.il --fail-on error # 有 error 时非零退出（CI / pre-commit 门禁）
+go run ./cmd/il fmt x.il --write               # 规范化排版（幂等）
 go run ./cmd/il log / show <id> / rollback <id> --repo .il
     # 档案版本管理：提交历史 / 查看某 commit / 回滚 HEAD
 go run ./cmd/il mcp --repo .il

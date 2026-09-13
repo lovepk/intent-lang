@@ -23,7 +23,7 @@ func main() {
 
 func run() error {
 	if len(os.Args) < 2 {
-		return fmt.Errorf("usage: il <chat|verify|repro|accept|lint|demo|mcp|log|show|rollback> [options]")
+		return fmt.Errorf("usage: il <chat|verify|repro|accept|lint|fmt|demo|mcp|log|show|rollback> [options]")
 	}
 	cmd := os.Args[1]
 
@@ -40,6 +40,8 @@ func run() error {
 		return accept(os.Args[2:])
 	case "lint":
 		return lint(os.Args[2:])
+	case "fmt":
+		return fmtCmd(os.Args[2:])
 	case "demo":
 		return demo(os.Args[2:])
 	case "mcp":
