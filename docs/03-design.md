@@ -135,7 +135,7 @@ type Response struct {
 
 语言本体权威定义见 `il-spec.md`（v2.0）。设计要点摘录：
 
-1. **四条根本原则**：① 消歧优先（只允许"已消歧的事实"）；② 否决与决策是资产（`NO` 否定 + `DECISIONS` 日志）；③ FIDELITY 声明锁定层级（`behavior`/`structure`/`artifact`）；④ 人类可读优先（任何一行不得要求读者"学过编程"）。
+1. **五条根本原则（原则 0 最重要）**：⓪ 记录优先、不干扰生成（IL 是记录介质，不是控制手段）；① 消歧优先（只允许"已消歧的事实"）；② 否决与决策是资产（`NO` 否定 + `DECISIONS` 日志）；③ FIDELITY 声明锁定层级（`behavior`/`structure`/`artifact`）；④ 人类可读优先（任何一行不得要求读者"学过编程"）。
 2. **八个段落**：头四段 `INTENT/KIND/FIDELITY/TARGET` + `CONTRACT`(R) / `ANCHORS` / `SNIPPET`(黄金代码) / `ACCEPT`(A) / `DECISIONS`(D) / `OPEN`(?，必带 default) / `META`。
 3. **稳定 ID 优先**：R/A/D 用稳定编号；新增=追加，修订=改正文保编号，作废=移除条目（`deprecated` 由 Agent 依据 diff 计算写入 META）；编号永不复用。
 4. **强模板、弱语法**：段落与编号是唯一硬结构，条目一律自然语言句子；语义靠消歧判定保证，不靠文法。所有传统语法要素以自然句形态呈现（见 il-spec 2.5 对照表）。
