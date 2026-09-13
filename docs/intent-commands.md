@@ -3,7 +3,7 @@
 > 构建/运行：`go run ./cmd/il <命令> [选项]`（或先 `go build -o intent-lang.exe ./cmd/il` 再用 `il <命令>`）。
 > 真实调用需 `.env` 提供 `DEEPSEEK_API_KEY_A/B`；`--key A|B` 切换两个凭据充当 LLM-A / LLM-B。
 
-## 一、命令总览（9 个）
+## 一、命令总览（10 个）
 
 | 分组 | 命令 | 作用 | 常用参数 |
 |---|---|---|---|
@@ -16,6 +16,7 @@
 | **档案管理** | `log` | 查看 commit 历史 | `--repo` |
 | | `show` | 查看某条 commit 详情（默认最新） | `--repo` `[id]` |
 | | `rollback` | 回滚 HEAD 到某条 commit | `--repo` `[id]` |
+| **集成** | `mcp` | 启动 MCP server（stdio），供其他 agent 调用 | `--repo` `--name` |
 
 **全局约定**：
 - `--key A|B`：选哪个凭据（默认 A）。A 通常当"建档端"，B 当"复现端"（跨模型验证）。
@@ -114,6 +115,22 @@ il rollback c-1788xxx --repo .il  # 回到该版本（HEAD 移到它）
 ```
 
 每条 commit 含：id / parent / message（机器 diff 自动摘要）/ user_msg（用户原话）/ 完整档案快照 / AI 回复 / 时间。
+
+### 8. `mcp` — MCP server（供其他 agent 调用）
+
+以 stdio 启动一个 Model Context Protocol 服务器，把 IL 的**确定性能力**暴露给任意 MCP agent。**默认不调用任何模型**（BYOM：模型由调用方自带）。
+
+```sh
+il mcp --repo .il      # 启动；请求/响应为换行分隔的 JSON-RPC 2.0
+```
+
+- **tools（纯、无 LLM）**：`il_parse`、`il_lint`、`il_diff`、`il_resolve`、`il_read`、`il_commit`、`il_log`。
+- **tools（可选编排，会调用模型）**：检测到 API key（`--key A|B`）时额外提供 `il_record`（双通道一轮）、`il_reproduce`（复现）、`il_accept`（验收）；未配 key 则只暴露上面的纯工具。
+- **prompts（权威提示词）**：`write`（SpecPrompt）、`repro`、`accept`、`lint`、`normalize`。
+- **resources（只读权威文档）**：`il://spec`、`il://agent`、`il://keywords`。
+- 典型 BYOM 用法：agent 取 `write` prompt → 用自己的 LLM 产出档案 → 调 `il_lint` 校验 → 调 `il_commit` 落库。
+
+详见 `intent-agent.md`（Agent 集成契约）。
 
 ---
 

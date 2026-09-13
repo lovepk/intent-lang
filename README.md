@@ -2,6 +2,8 @@
 
 一种给 LLM 使用的意图语言 (Intent Language) 及其 agent 工作流：让"人与 LLM 的对话"沉淀为一份**独立于会话、可移植、可复现的意图档案**。
 
+> **定位**：面向 agent 的**意图交换格式 + 记录协议**，不是具体产品。**规范才是产品**，本仓库 CLI 只是参考实现与测试床；其他 agent 通过接口（MCP tool / 库 / 直接遵守双通道协议）消费它。详见 `docs/intent-goals.md` §2.1–2.2。
+
 ## 核心思想
 
 ```
@@ -31,6 +33,7 @@
 | `docs/intent-spec.md` | 意图语言规范 v2.0（给 LLM 读的完整语言定义） |
 | `docs/intent-keywords.md` | **关键词速查手册（给人类看）**：一词一例、一页总览 |
 | `docs/intent-ecosystem.md` | 应用场景与生态：能用在哪些场景、如何建立生态 |
+| `docs/intent-agent.md` | **Agent 集成契约**：其他 agent 接入 IL 必须遵守的规则与自检清单 |
 
 ## 状态
 
@@ -57,9 +60,40 @@ go run ./cmd/il lint --archive x.il            # 确定性结构检查（快/零
 go run ./cmd/il lint --llm --key A --archive x.il   # + LLM 单轮语义复查（找需理解力的矛盾，领域无关）
 go run ./cmd/il log / show <id> / rollback <id> --repo .il
     # 档案版本管理：提交历史 / 查看某 commit / 回滚 HEAD
+go run ./cmd/il mcp --repo .il
+    # 启动 MCP server（stdio）：把 parse/lint/diff/resolve/read/commit/log 作为工具，
+    # 规范/契约作为资源，各角色提示词作为 prompt，暴露给任意 MCP agent；
+    # 默认不调用模型（BYOM），调用方自带 LLM；配了 API key 时另提供
+    # il_record/il_reproduce/il_accept 编排工具
 ```
 
 CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。`accept`/`demo` 需要本机装有 `python`（验收脚本以标准库运行产物）。
+
+## 作为库嵌入 / MCP 集成
+
+其他 agent 有两种接入方式（都默认 BYOM——模型由调用方自带）：
+
+- **Go 库**：`import "intent-lang/pkg/intentlang"`，实现 `intentlang.Model` 接口后即可 `Record`/`Reproduce`/`Accept`，并用 `Parse`/`Lint`/`CompareEntries`/`OpenStore` 做确定性操作。见 `docs/intent-agent.md`。
+- **MCP server**：`il mcp` 把确定性能力与权威提示词暴露给任意 MCP agent（详见 `docs/intent-commands.md` §8）。
+
+接入 MCP 客户端（以 Claude Desktop 的 `claude_desktop_config.json` 为例）：
+
+```sh
+go build -o intent-lang.exe ./cmd/il   # 或 go install ./cmd/il
+```
+
+```json
+{
+  "mcpServers": {
+    "intent-lang": {
+      "command": "intent-lang",
+      "args": ["mcp", "--repo", "E:/path/to/.il"]
+    }
+  }
+}
+```
+
+不配 API key → 只暴露确定性工具（纯 BYOM）；配 `DEEPSEEK_API_KEY_A` → 额外暴露 `il_record`/`il_reproduce`/`il_accept`。
 
 ## 文件格式与编辑器支持
 
@@ -81,3 +115,5 @@ CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。`accept`/`demo` 需
 ## 路线
 
 M0 文档 → M1 IL → M2 档案仓库+对话内核 → M3 复现 → M4 端到端演示 → M5 真实 LLM → M6 规范打磨 → M7 多档案引用 → M8 分层一致性。
+
+生态（见 `docs/intent-ecosystem.md`）：近期只做四件务实的事——多 Provider（证明可移植）、`il fmt`、`il lint --fail-on` 门禁、规范版本纪律；注册表/LSP/平台等暂缓。
