@@ -1,12 +1,13 @@
 package il
 
 import (
+	"strconv"
 	"strings"
 )
 
-// Diff is the set of entry ids whose bodies changed between two archive texts,
-// plus added/removed ids. Bodies are compared in a normalized form (whitespace
-// collapsed) so pure formatting churn does not count as a change.
+// Diff is the set of change-unit ids whose bodies changed between two archive
+// texts, plus added/removed ids. Bodies are compared in a normalized form
+// (whitespace collapsed) so pure formatting churn does not count as a change.
 type Diff struct {
 	Added    []string
 	Removed  []string
@@ -21,43 +22,74 @@ func (d Diff) Changed() []string {
 	return out
 }
 
-func normBody(line string) string {
-	return strings.Join(strings.Fields(entryBody(line)), " ")
-}
-
-func indexByID(text string) map[string]string {
+// EntryBodies maps every "change unit" of an archive to its body text. It is
+// the single source of truth for machine diffs, so the change gate and commit
+// summaries cannot drift apart. Units:
+//
+//   - R/A/D/? entries in CONTRACT/ACCEPT/DECISIONS/OPEN;
+//   - the four header fields: INTENT / KIND / FIDELITY / TARGET;
+//   - the whole ANCHORS section (id "ANCHORS");
+//   - each SNIPPET section, keyed "SNIPPET:<label>".
+//
+// META is deliberately excluded (Agent-owned, not LLM-visible).
+func EntryBodies(text string) map[string]string {
 	m := map[string]string{}
 	doc, err := Parse(text)
 	if err != nil {
 		return m
 	}
+	for _, k := range []string{"INTENT", "KIND", "FIDELITY", "TARGET"} {
+		if v := doc.HeaderRaw[k]; v != "" {
+			m[k] = v
+		}
+	}
 	for _, name := range []string{"CONTRACT", "ACCEPT", "DECISIONS", "OPEN"} {
-		prefix := entryPrefixOf(name)
 		s := doc.Section(name)
 		if s == nil {
 			continue
 		}
+		prefix := entryPrefixOf(name)
 		for _, e := range s.Entries() {
-			id := prefix + e.ID
-			m[id] = e.Text
+			m[prefix+e.ID] = entryBody(e.Text)
 		}
+	}
+	if s := doc.Section("ANCHORS"); s != nil && len(s.Lines) > 0 {
+		m["ANCHORS"] = strings.Join(s.Lines, "\n")
+	}
+	unnamed := 0
+	for _, s := range doc.Sections {
+		if s.Name != "SNIPPET" {
+			continue
+		}
+		label := s.Label
+		if label == "" {
+			unnamed++
+			label = "unnamed-" + strconv.Itoa(unnamed)
+		}
+		m["SNIPPET:"+label] = strings.Join(s.Lines, "\n")
 	}
 	return m
 }
 
-// CompareEntries diffs entry ids/bodies between two archive texts.
+func norm(s string) string {
+	return strings.Join(strings.Fields(s), " ")
+}
+
+// CompareEntries diffs change units between two archive texts. It covers the
+// header fields, ANCHORS and SNIPPET in addition to R/A/D/? entries, so silent
+// edits outside CONTRACT/ACCEPT/DECISIONS/OPEN are no longer invisible.
 func CompareEntries(beforeText, afterText string) Diff {
-	before := indexByID(beforeText)
-	after := indexByID(afterText)
+	before := EntryBodies(beforeText)
+	after := EntryBodies(afterText)
 
 	var d Diff
-	for id, line := range after {
-		oldLine, ok := before[id]
+	for id, body := range after {
+		old, ok := before[id]
 		if !ok {
 			d.Added = append(d.Added, id)
 			continue
 		}
-		if normBody(oldLine) != normBody(line) {
+		if norm(old) != norm(body) {
 			d.Modified = append(d.Modified, id)
 		}
 	}

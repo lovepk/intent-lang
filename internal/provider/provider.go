@@ -7,9 +7,10 @@ import (
 type Mode string
 
 const (
-	ModeWrite Mode = "write"
-	ModeRepro Mode = "repro"
-	ModeLint  Mode = "lint"
+	ModeWrite     Mode = "write"
+	ModeRepro     Mode = "repro"
+	ModeLint      Mode = "lint"
+	ModeNormalize Mode = "normalize"
 )
 
 type Request struct {
@@ -29,10 +30,9 @@ type Finding struct {
 }
 
 type Response struct {
-	Reply           string
-	IntentUpdate    string
-	Findings        []Finding
-	DeclaredChanges []string
+	Reply        string
+	IntentUpdate string
+	Findings     []Finding
 }
 
 type Provider interface {

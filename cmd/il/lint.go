@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
 
 	"intent-lang/internal/il"
 	"intent-lang/internal/provider"
@@ -58,40 +56,11 @@ func lint(args []string) error {
 			return err
 		}
 		printFindings(resp.Findings)
-
-		// Optional: review whether a free-text reply matches this archive.
-		if replyFile := f["reply"]; replyFile != "" {
-			replyData, err := os.ReadFile(replyFile)
-			if err != nil {
-				return fmt.Errorf("read --reply: %w", err)
-			}
-			before := ""
-			if bf := f["before"]; bf != "" {
-				data, err := os.ReadFile(bf)
-				if err != nil {
-					return fmt.Errorf("read --before: %w", err)
-				}
-				before = string(data)
-			}
-			fmt.Println("\n=== LLM 语义复查（reply ↔ 档案） ===")
-			user := fmt.Sprintf("【上一版档案】\n```\n%s\n```\n\n【本版档案】\n```\n%s\n```\n\n【LLM 给用户的回复】\n%s\n\n请检查 reply 与本版档案是否一致。",
-				before, doc.Canonical(), strings.TrimSpace(string(replyData)))
-			rr, err := p.Complete(ctx, provider.Request{
-				System: il.LintReplyPrompt,
-				User:   user,
-				Mode:   provider.ModeLint,
-			})
-			if err != nil {
-				return err
-			}
-			printFindings(rr.Findings)
-		}
 	}
 	return nil
 }
 
-// printFindings renders LLM lint findings (shared by the archive-internal and
-// reply↔archive reviews).
+// printFindings renders LLM lint findings.
 func printFindings(findings []provider.Finding) {
 	if len(findings) == 0 {
 		fmt.Println("LLM 复查: 未发现问题")

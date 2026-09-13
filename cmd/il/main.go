@@ -112,14 +112,6 @@ func noMeta(text string) string {
 	return doc.StripMeta().Canonical()
 }
 
-func validateIL(text string) []error {
-	doc, err := il.Parse(text)
-	if err != nil {
-		return []error{err}
-	}
-	return doc.Validate()
-}
-
 func lenLog(store *archive.Store) int {
 	log, err := store.Log()
 	if err != nil {
@@ -169,6 +161,7 @@ func chat(args []string) error {
 
 		beforeRaw := cur
 		beforeDoc := noMeta(beforeRaw)
+		// L0 生成：LLM 自由产出草稿，不做任何约束。
 		resp, err := p.Complete(ctx, provider.Request{System: il.SpecPrompt, Archive: beforeDoc, User: msg})
 		if err != nil {
 			fmt.Println("!!", err)
@@ -178,27 +171,13 @@ func chat(args []string) error {
 		if strings.TrimSpace(resp.IntentUpdate) == "" {
 			fmt.Println("--- reply ---")
 			fmt.Println(resp.Reply)
-			reportReplyClaims(resp.Reply, beforeDoc, nil)
 			fmt.Println("(档案未变更)")
 			continue
 		}
-		after := resp.IntentUpdate
-		if errs := validateIL(after); errs != nil {
-			fmt.Println("!! 输出不是合法档案，本次改动未落库：", errs)
-			fmt.Println("   为避免误导，模型回复已扣留（它描述的是未落库的改动）。请重新表达需求。")
-			stats.noteValidate(errs)
-			continue
-		}
-		// 变更闸门：模型声明了改哪些条目；机器 diff 若发现"改了却没声明"，
-		// 视为越权改动，拒绝落库（确定性守卫，保护已消歧事实不被顺手改动）。
-		if over := undeclaredChanges(beforeRaw, after, resp.DeclaredChanges); len(over) > 0 {
-			fmt.Println("!! 变更闸门拒绝：模型改动以下条目但未在 declared_changes 中声明：")
-			for _, c := range over {
-				fmt.Printf("   [%s] %s\n", c.Kind, c.ID)
-			}
-			fmt.Println("   本次改动未落库。为避免误导，模型回复已扣留。请重新表达需求让模型如实声明改动，或人工核对。")
-			stats.noteValidate([]error{fmt.Errorf("undeclared changes: %v", over)})
-			continue
+		// L1 确定性检查 + L2 记录员（仅 L1 报警时触发）：只记录，不拒绝、不提示。
+		after, normalized := recordArchive(ctx, p, resp.IntentUpdate, beforeDoc)
+		if normalized {
+			stats.Normalizations++
 		}
 		summary := archive.Summarize(beforeRaw, after)
 		commits := lenLog(store) + 1
@@ -216,7 +195,6 @@ func chat(args []string) error {
 		}
 		fmt.Println("--- reply ---")
 		fmt.Println(resp.Reply)
-		reportReplyClaims(resp.Reply, noMeta(cur), resp.DeclaredChanges)
 		printAuthorityPanel(summary)
 		fmt.Printf("--- intent_update（commit %s）---\n", c.ID)
 		fmt.Println(noMeta(c.Archive))

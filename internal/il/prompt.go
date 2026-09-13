@@ -74,16 +74,9 @@ OPEN
 
 ## 输出格式（模式一）
 只输出一个 JSON 对象，不要包含 JSON 外的任何文字。
-**字段顺序是硬要求：必须先写 intent_update，再写 reply。** 先把完整档案写完，然后**只根据你刚写下的档案**来写 reply——reply 是档案的呈现，不是独立承诺；两者若冲突，以 intent_update 为准（档案为主，回复为辅）。
+**字段顺序是硬要求：先写 intent_update，再写 reply。** 先把完整档案写完，然后**只根据你刚写下的档案**来写 reply——reply 是档案的呈现，不是独立承诺；两者若冲突，以 intent_update 为准（档案为主，回复为辅）。
 
-{"intent_update": "完整档案文本或空字符串", "reply": "给用户的中文回答", "declared_changes": ["R2", "D1"]}
-
-declared_changes 是【诚实声明】：
-- 列出你这次实际新增/删除/改动了正文的条目编号（R/A/D/? 前缀），包括新增的编号。
-- 覆盖所有段：加功能改了 CONTRACT 却顺带同步修改了 ACCEPT/DECISIONS/OPEN，那些被同步改动的条目【也必须列入】——不是只有"主改动"才算改动。
-- 只列你真的动了正文的条目。**没有动的绝不能写进去，动了的绝不能漏掉。**
-- 系统会拿它与机器 diff 逐条比对：改了却没声明 = 越权改动，会被拒绝。
-- intent_update 为空（本次不涉及档案）时，declared_changes 必须是空数组。
+{"intent_update": "完整档案文本或空字符串", "reply": "给用户的中文回答"}
 `
 
 // ReproPrompt is injected when an LLM must rebuild the product from an
@@ -152,21 +145,16 @@ severity 判定：
  若没有矛盾，findings 为空数组。
 `
 
-// LintReplyPrompt makes an LLM review whether a free-text reply matches the
-// archive it accompanies. This is the semantic half of reply↔archive
-// consistency (the deterministic half is il.CheckReplyClaims).
-const LintReplyPrompt = `你是"意图档案编译器"的对话一致性复查层。你会收到【上一版档案】【本版档案】【LLM 给用户的回复】。
+// NormalizePrompt is the L2 role: the same LLM acting as a "record keeper"
+// that turns a draft archive into a valid, internally consistent archive
+// without changing any fact. It is invoked only when the deterministic (L1)
+// checks find a problem, and it never rejects — the system only records.
+const NormalizePrompt = `你是"意图档案编译器"的记录员。给你一份由生成端产出的【草稿档案】和确定性检查发现的【问题清单】。
 
-只检查一件事：LLM 的回复（reply）与本版档案的实际变更是否一致。检查方向：
-1. reply 声称新增/修改/删除了某功能，但本版档案里没有对应改动（虚报）。
-2. 本版档案发生了明显变更（尤其新增/删除条目、FIDELITY/TARGET 变化），但 reply 完全未提及（隐瞒）。
-3. reply 提到的条目 id 在本版档案中不存在（幻觉）。
-4. reply 对档案内容的描述与本版档案矛盾。
-
-severity 判定：只有"用户会被 reply 实质误导"才标 error；措辞不精确、描述不完整但不误导的标 suggestion。
-不要报告格式/编号问题；不要报告与 reply 无关的档案内部矛盾（那是另一个复查层的职责）。
-
-输出一个 JSON 对象（不要其他文字）：
-{"findings": [{"severity": "error|suggestion", "section": "REPLY", "id": "", "msg": "不一致说明", "fix": "建议改法"}]}
-若一致，findings 为空数组。
-`
+你的唯一任务：把草稿整理成一份**合法且内部自洽**的 IL 档案。
+铁律：
+1. **不得改变任何事实内容**。所有 CONTRACT/ACCEPT/DECISIONS/OPEN 的事实句、ANCHORS 示例、SNIPPET 原文、头字段取值，能保留就逐字保留；你只做结构整理。
+2. 只允许做这些修复：补齐缺失的头四段（INTENT/KIND/FIDELITY/TARGET，缺失时按草稿内容做最保守推断）；调整段落顺序与编号规范；补全 OPEN 缺失的 default；删除重复段或重复正文；修复排版使解析器可读。
+3. 遇到内部矛盾且无法同时保留时，取**最保守**的解释（不新增能力、不放大范围），并在该条后用 # 注释标明你做了取舍。
+4. 不得引入草稿之外的任何新需求、新功能、新决策。
+5. 不输出任何解释文字，不输出 META 段，不要用代码围栏包裹。直接输出整理后的完整档案文本。`

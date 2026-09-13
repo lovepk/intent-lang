@@ -11,9 +11,9 @@ import (
 )
 
 // verify previews, without committing, how the model would rewrite an archive
-// in response to a request. It is chat's stateless sibling: it reads an
-// archive (file or repo/name), applies the change gates, and reports the
-// declared vs actual changes — but writes nothing.
+// in response to a request. It is chat's stateless sibling: it runs the same
+// layered checks (L1 deterministic, L2 recorder when needed) and shows the
+// machine diff — but writes nothing.
 func verify(args []string) error {
 	f := flags(args)
 	p, err := makeProvider(f)
@@ -56,47 +56,19 @@ func verify(args []string) error {
 	fmt.Println(resp.Reply)
 
 	if strings.TrimSpace(resp.IntentUpdate) == "" {
-		reportReplyClaims(resp.Reply, beforeDoc, nil)
 		fmt.Println("== 判定 ==\n(档案未变更)")
 		return nil
 	}
-	after := resp.IntentUpdate
 
-	// structural validation of the proposed rewrite
-	if errs := validateIL(after); errs != nil {
-		fmt.Println("== 判定 ==")
-		fmt.Printf("!! 模型输出不是合法档案（%d 处）:\n", len(errs))
-		for _, e := range errs {
-			fmt.Println("  [error] " + e.Error())
-		}
-		return nil
+	// L1 确定性检查 + L2 记录员（仅 L1 报警时触发）：与 chat 同一套分层逻辑。
+	after, normalized := recordArchive(ctx, p, resp.IntentUpdate, beforeDoc)
+	if normalized {
+		fmt.Println("== L1 发现问题，L2 记录员已整理为合法自洽档案 ==")
 	}
 
-	// change gate: actual machine diff vs declared changes
-	gateOK := true
-	if over := undeclaredChanges(source, after, resp.DeclaredChanges); len(over) > 0 {
-		gateOK = false
-		fmt.Println("== 判定：变更闸门会拦截 ==")
-		for _, c := range over {
-			fmt.Printf("  [%s] %s\n", c.Kind, c.ID)
-		}
-		fmt.Println("模型改了这些条目但未在 declared_changes 声明。若经 chat 提交会被拒绝。")
-	} else {
-		fmt.Println("== 判定：可通过变更闸门 ==")
-		if len(resp.DeclaredChanges) > 0 {
-			fmt.Println("声明的改动: " + strings.Join(resp.DeclaredChanges, ", "))
-		} else {
-			fmt.Println("(无档案变更声明)")
-		}
-	}
+	printAuthorityPanel(archive.Summarize(source, after))
 
-	// preview the reply↔archive consistency findings chat would show.
-	reportReplyClaims(resp.Reply, noMeta(after), resp.DeclaredChanges)
-	if gateOK {
-		printAuthorityPanel(archive.Summarize(source, after))
-	}
-
-	fmt.Println("== 模型重写后的档案（预览，未提交） ==")
+	fmt.Println("== 档案（预览，未提交） ==")
 	fmt.Println(noMeta(after))
 	return nil
 }

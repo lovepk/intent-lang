@@ -16,6 +16,7 @@ type ComplianceStats struct {
 	LintErrorCount      int
 	LintSuggestionCount int
 	Commits             int
+	Normalizations      int
 }
 
 func newStats() *ComplianceStats {
@@ -76,7 +77,10 @@ func (s *ComplianceStats) render() string {
 	if s.Commits > 0 {
 		fmt.Fprintf(&b, "提交数: %d\n", s.Commits)
 	}
-	b.WriteString("语法校验拒绝(按类型):\n")
+	if s.Normalizations > 0 {
+		fmt.Fprintf(&b, "L2 记录员触发: %d 次（L1 发现非法/矛盾）\n", s.Normalizations)
+	}
+	b.WriteString("生成/L1 错误(按类型):\n")
 	if len(s.ValidateRejections) == 0 {
 		b.WriteString("  无\n")
 	}

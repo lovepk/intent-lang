@@ -116,7 +116,7 @@ R1: 支付见 <ref: payment.il#R2@1.3>
 | 环节 | 改动 |
 |---|---|
 | **对话建档 (chat)** | LLM 写的是**源档案**，可写 `<ref>`；SpecPrompt 增加引用语法说明。存库的是源档案。 |
-| **变更闸门** | 不变——闸门在源层工作（比较源 before/after）。 |
+| **分层一致性 (L1/L2)** | 在源层工作：L1 机器 diff 比较源 before/after；L2 记录员整理的是源档案。 |
 | **复现 (repro)** | 喂给 LLM 前先 materialize 成展开档案。 |
 | **accept/compare** | 同样先用展开档案。 |
 | **lint** | 源档案 lint 时跳过 `<ref>` 内容（引用处待物化），但**校验引用语法**（格式对、版本带、目标存在性由 resolve 查）。 |

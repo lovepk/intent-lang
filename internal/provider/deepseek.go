@@ -11,8 +11,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"intent-lang/internal/il"
 )
 
 type DeepSeek struct {
@@ -98,7 +96,7 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 			{Role: "user", Content: userText},
 		},
 	}
-	if req.Mode != ModeRepro {
+	if req.Mode != ModeRepro && req.Mode != ModeNormalize {
 		msg.ResponseFormat = &responseFormat{Type: "json_object"}
 	}
 
@@ -140,11 +138,13 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 	if req.Mode == ModeRepro {
 		return Response{Reply: StripFence(content)}, nil
 	}
+	if req.Mode == ModeNormalize {
+		return Response{Reply: StripFence(strings.TrimSpace(content))}, nil
+	}
 
 	var out struct {
-		IntentUpdate    string   `json:"intent_update"`
-		Reply           string   `json:"reply"`
-		DeclaredChanges []string `json:"declared_changes"`
+		IntentUpdate string `json:"intent_update"`
+		Reply        string `json:"reply"`
 	}
 	if err := json.Unmarshal([]byte(content), &out); err != nil {
 		return Response{}, fmt.Errorf("deepseek: model did not return valid JSON: %w\nraw: %s", err, truncate(content, 800))
@@ -160,18 +160,11 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 		return Response{Findings: lint.Findings}, nil
 	}
 
-	if strings.TrimSpace(out.IntentUpdate) != "" {
-		canonDoc, err := il.Parse(out.IntentUpdate)
-		if err != nil {
-			return Response{}, fmt.Errorf("deepseek: intent_update not parseable IL: %w", err)
-		}
-		if errs := canonDoc.Validate(); len(errs) != 0 {
-			return Response{}, fmt.Errorf("deepseek: intent_update fails IL validation: %v", errs)
-		}
-		out.IntentUpdate = canonDoc.Canonical()
-	}
-
-	return Response{Reply: out.Reply, IntentUpdate: out.IntentUpdate, DeclaredChanges: out.DeclaredChanges}, nil
+	// No IL validation/normalization here: the provider only transports the
+	// model's draft. Validity and self-consistency are the job of the layered
+	// checks in the agent (L1 deterministic, L2 recorder). Rejecting here would
+	// be "interference", which the record-only model forbids.
+	return Response{Reply: out.Reply, IntentUpdate: out.IntentUpdate}, nil
 }
 
 func truncate(s string, n int) string {

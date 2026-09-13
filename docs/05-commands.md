@@ -48,36 +48,33 @@ il chat --key A --repo .il
 ```
 
 - 对话结束自动写出 `.il/archive.last.il`（最新档案，供 repro/lint 使用）。
-- 变更受**闸门**保护：模型改了却没在 `declared_changes` 里声明的条目会被拒绝落库。
-- **交付原子性**：校验/闸门失败时本次不落库，且**扣留模型回复**（它描述的是未生效的改动），只报系统错误——避免用户以为改动已生效。
+- **只记录、不干扰**：生成端自由产出；系统一律记录，不拒绝、不重试、不扣留、不提示。
+- **分层一致性**：L1 确定性（结构校验 + 机器 diff + lint）每轮跑；仅当 L1 发现非法/矛盾时才触发 L2 记录员（同模型不同角色，`ModeNormalize`）把草稿整理成合法自洽档案；记录员救不回则按草稿记录。
 - 无关消息（闲聊）不产生 commit。
-- **reply↔档案 advisory 提示**：`il.CheckReplyClaims` 确定性检查 reply 提到的条目 id 是否存在、声称改动是否已声明，仅提示不阻断。
-- 每轮额外打印 `--- 档案实际变更（权威，机器 diff）---` 摘要，作为不受 reply 影响的权威变更记录。
+- 每轮打印 `--- 档案实际变更（权威，机器 diff）---` 摘要（变更单元含 `R/A/D/?`、头字段、`ANCHORS`、`SNIPPET:<label>`）。
 
 ### 2. `verify` — 单轮无副作用预览（v2）
 
-不进仓库、不写 commit，直接看"给定这条需求，模型会怎样重写档案"。用于试需求、验证遵守度。v2 起支持从仓库多档案读取、并模拟变更闸门预判。
+不进仓库、不写 commit，直接看"给定这条需求，模型会怎样重写档案"。用于试需求。v2 起支持从仓库多档案读取。
 
 ```sh
 il verify --key A --archive calc.il --msg "加上乘法"          # 单文件
 il verify --key A --repo .il --name app --msg "加上除法"       # 仓库多档案
-# 输出: reply + 判定（可通过变更闸门 / 会被拦截）+ 模型重写后的完整档案
+# 输出: reply + 机器 diff 摘要 + 分层处理后的档案（未提交）
 ```
 
-> 与 `chat` 的区别：`chat` 会落库成 commit，`verify` 只预览不落库——模型若改了没声明的条目，verify 会提示"经 chat 提交会被拒绝"。verify 同样展示 reply↔档案 advisory 提示与机器 diff 权威摘要。
+> 与 `chat` 的区别：`chat` 会落库成 commit，`verify` 只预览不落库。verify 跑同一套 L1/L2 分层逻辑。
 
 ### 3. `lint` — 语言体检
 
 两层检查：
-- **确定性结构 lint**：SNIPPET/FIDELITY 不匹配、META.spec 版本、OPEN 空 default、悬空引用、OPEN 已收敛、引用出现在禁止段、最小档案等（快、零成本）。
-- `--llm` **LLM 语义复查**：找需要理解力的矛盾（ACCEPT 与被否功能冲突、SNIPPET 锁定代码与 CONTRACT 冲突、引用一致性），领域无关。
-- `--llm --reply <reply.txt>`：追加 **reply ↔ 档案一致性复查**（可配 `--before <旧档案.il>` 作为对照），检查 reply 是否虚报/隐瞒/幻觉。
+- **确定性结构 lint（L1）**：SNIPPET/FIDELITY 不匹配、META.spec 版本、OPEN 空 default、悬空引用、OPEN 已收敛、引用出现在禁止段、最小档案等（快、零成本）。
+- `--llm` **LLM 语义复查（L2）**：找需要理解力的矛盾（ACCEPT 与被否功能冲突、SNIPPET 锁定代码与 CONTRACT 冲突、引用一致性），领域无关。
 
 ```sh
 il lint --archive calc.il              # 结构检查
 il lint --repo .il --name app          # 检查仓库内某档案
 il lint --llm --key A --archive calc.il # + LLM 复查
-il lint --llm --key A --archive calc.il --before old.il --reply reply.txt  # reply 一致性复查
 ```
 
 ### 4. `repro` — 失忆复现

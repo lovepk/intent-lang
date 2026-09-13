@@ -142,21 +142,39 @@
 - 待做：跨仓库依赖（远期）。
 
 **工具纵深收尾**
-- ✅ verify 升级对齐 v2：支持 --repo/--name（仓库多档案），输出判定（可通过闸门/会被拦截）+ 完整预览；真实验证能暴露模型非法输出（如 DECISIONS 编号重复）。
+- ✅ verify 升级对齐 v2：支持 --repo/--name（仓库多档案），跑与 chat 同一套 L1/L2 分层逻辑并预览完整档案。
 - ✅ compare 废弃：文本相似度不能衡量意图一致性，命令入口保留但提示改用 accept/lint（03-design/05-commands 同步）。
 - ✅ stats 补齐：lint 计数分 error/suggestion 汇总。
 - ✅ lint --llm SNIPPET 检查方向校准：明确"SNIPPET 代码与 CONTRACT 冲突→error"；真实验证能抓 print(stdout) vs R1(stderr) 冲突，并在 calculator fixture 上发现 SNIPPET 只有 apply 而 ACCEPT 测 add 的真实缺陷。
 
-## M8 — 回复一致性（reply ↔ 档案，已完成）
+## M8 — 分层一致性（记录优先，已完成）
 
-> 目标：在不牺牲 reply 生成自由度的前提下，处理"LLM 对用户说的话"与"LLM 写的档案"不一致的问题。
+> 目标：处理"生成端输出与档案/回复不一致"的问题，且**不干扰 LLM 生成**。
 
-**结论（设计）**：自由文本与结构化档案之间无可判定的等价关系，故不承诺"保证一致"，改为三层收口（保留 reply 生成自由度，不做两遍生成）：
-1. ✅ **确定性校验 `il.CheckReplyClaims`**（`internal/il/reply.go`）：reply 提到的条目 id 必须在档案中存在（error）；与变更动词同句、却不在 `declared_changes` 的 id 记 suggestion。仅提示不阻断。单测覆盖幻觉/漏声明/纯引用/相邻 id 等。
-2. ✅ **advisory 语义复查**：`LintReplyPrompt` + `lint --llm --reply <file> [--before <old.il>]`，检查 reply 虚报/隐瞒/幻觉。
-3. ✅ **权威分离**：chat/verify 独立打印机器 diff 摘要（"档案实际变更（权威）"），reply 定义为非契约。
+**原则**：IL 是记录介质，不是控制手段。系统只产出"合法且自洽的记录"，不提示、不否决、不扣留、不阻断。
 
-**验收**：`go build ./...` / `go test ./...` 全通过（含新增 reply 单测）。
+**分层模型**
+
+| 层 | 检查什么 | 谁做 | 触发 |
+|---|---|---|---|
+| L0 生成 | 不检查、不干扰 | 生成器（自由产出草稿） | 每轮 |
+| L1 确定性 | 结构校验 + 机器 diff + lint error | 机器（纯计算） | 每轮 |
+| L2 语义 | L1 修不了的非法/矛盾 → 整理成合法自洽 | 记录员（同模型不同角色，`ModeNormalize`） | 仅 L1 报警 |
+| L3 行为 | 档案 ↔ 产物 | ACCEPT | 按需 |
+| L4 人 | 最终裁决 | 人 | 随时 |
+
+**已完成**
+- ✅ **机器 diff 覆盖全档案**：`il.EntryBodies` 统一变更单元（`R/A/D/?` + 头字段 `INTENT/KIND/FIDELITY/TARGET` + `ANCHORS` + `SNIPPET:<label>`）；`CompareEntries` 与 `archive.Summarize` 共用，记录与摘要口径一致。
+- ✅ **L2 记录员**：`NormalizePrompt` + `provider.ModeNormalize`；`cmd/il/normalize.go` 的 `l1Problems`/`recordArchive`，仅 L1 报警时调用，不改事实、不拒绝；救不回则按草稿记录。
+- ✅ chat/verify/demo 改为分层记录流程；每轮打印机器 diff 权威摘要。
+- ✅ reply 只作记录（"模型的话"），权威意图只有档案。
+- ✅ **移除**：变更闸门、`declared_changes`、校验拒绝、reply 扣留、`CheckReplyClaims`/`LintReplyPrompt` 提示、`undeclaredChanges`。
+- ✅ 单测：头字段/ANCHORS/SNIPPET 的增删改可被 `CompareEntries` 检出。
+
+**设计沿革（实测驱动）**
+- ⏪ 曾用"变更闸门 + `declared_changes`"做声明-校验式阻断；实测（8 场景）单次通过仅 3/8，模型对穷举声明遵守度不足、拒绝过多。
+- ⏪ 曾把字段顺序改为 declare-first，实测顺序 8/8 遵守但拒绝仍多，已回退。
+- ⏪ 曾用 `CheckReplyClaims` / `lint --llm --reply` 做 reply↔档案提示；因 reply 降级为纯记录而移除。
 
 ## 展望（超出当前范围，仅记录）
 

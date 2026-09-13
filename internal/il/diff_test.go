@@ -64,6 +64,31 @@ func TestCompareEntriesIgnoresMeta(t *testing.T) {
 	}
 }
 
+func TestCompareEntriesCoversHeaderAnchorsSnippet(t *testing.T) {
+	before := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\nANCHORS\n  in: 1\n  out: 2\nSNIPPET core\n  print(1)\n"
+	after := "INTENT x@1\nKIND p\nFIDELITY artifact\nTARGET py\nCONTRACT\n  R1: a\nANCHORS\n  in: 1\n  out: 3\nSNIPPET core\n  print(2)\n"
+	d := CompareEntries(before, after)
+	all := d.Changed()
+	want := map[string]bool{"FIDELITY": true, "ANCHORS": true, "SNIPPET:core": true}
+	if len(all) != 3 {
+		t.Fatalf("changed = %v, want 3 units", all)
+	}
+	for _, id := range all {
+		if !want[id] {
+			t.Errorf("unexpected changed unit %q", id)
+		}
+	}
+}
+
+func TestCompareEntriesSnippetAddRemove(t *testing.T) {
+	before := "INTENT x@1\nKIND p\nFIDELITY artifact\nTARGET py\nCONTRACT\n  R1: a\nSNIPPET core\n  print(1)\n"
+	after := "INTENT x@1\nKIND p\nFIDELITY artifact\nTARGET py\nCONTRACT\n  R1: a\nSNIPPET core\n  print(1)\nSNIPPET extra\n  print(2)\n"
+	d := CompareEntries(before, after)
+	if !cmpList(d.Added, []string{"SNIPPET:extra"}) {
+		t.Errorf("added = %v, want [SNIPPET:extra]", d.Added)
+	}
+}
+
 func TestUndeclaredChangesScratch(t *testing.T) {
 	// helper lives in cmd package; here we just sanity-check Diff.Changed ordering
 	before := "INTENT x@1\nKIND p\nFIDELITY behavior\nTARGET py\nCONTRACT\n  R1: a\n  R2: b\n"
