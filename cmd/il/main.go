@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"intent-lang/internal/agent"
 	"intent-lang/internal/archive"
 	"intent-lang/internal/il"
 	"intent-lang/internal/provider"
@@ -22,7 +23,7 @@ func main() {
 
 func run() error {
 	if len(os.Args) < 2 {
-		return fmt.Errorf("usage: il <chat|verify|repro|accept|lint|demo|log|show|rollback> [options]")
+		return fmt.Errorf("usage: il <chat|verify|repro|accept|lint|demo|mcp|log|show|rollback> [options]")
 	}
 	cmd := os.Args[1]
 
@@ -41,6 +42,8 @@ func run() error {
 		return lint(os.Args[2:])
 	case "demo":
 		return demo(os.Args[2:])
+	case "mcp":
+		return cmdMCP(os.Args[2:])
 	case "log":
 		return cmdLog(os.Args[2:])
 	case "show":
@@ -69,15 +72,11 @@ func flags(args []string) map[string]string {
 }
 
 func openStore(f map[string]string) (*archive.Store, error) {
-	dir := f["repo"]
-	if dir == "" {
-		dir = ".il"
-	}
-	name := f["name"]
-	if name == "" {
-		name = archive.DefaultName
-	}
-	return archive.OpenArchive(dir, name)
+	return agent.OpenStore(sourceOpts(f))
+}
+
+func sourceOpts(f map[string]string) agent.SourceOpts {
+	return agent.SourceOpts{Archive: f["archive"], Repo: f["repo"], Name: f["name"]}
 }
 
 func makeProvider(f map[string]string) (provider.Provider, error) {
@@ -89,17 +88,6 @@ func envKeyFor(key string) string {
 		return "DEEPSEEK_API_KEY_B"
 	}
 	return "DEEPSEEK_API_KEY_A"
-}
-
-func noMeta(text string) string {
-	if strings.TrimSpace(text) == "" {
-		return ""
-	}
-	doc, err := il.Parse(text)
-	if err != nil {
-		return text
-	}
-	return doc.StripMeta().Canonical()
 }
 
 func lenLog(store *archive.Store) int {
@@ -123,6 +111,7 @@ func chat(args []string) error {
 	}
 
 	ctx := context.Background()
+	ag := &agent.Agent{Model: p}
 	scanner := bufio.NewScanner(os.Stdin)
 	latest, err := store.Latest()
 	if err != nil {
@@ -133,7 +122,7 @@ func chat(args []string) error {
 	var deprecated []string
 	if latest != nil {
 		cur = latest.Archive
-		createdCarry, deprecated = parseMetaCarry(cur)
+		createdCarry, deprecated = agent.ParseMetaCarry(cur)
 	}
 	stats := newStats()
 
@@ -149,44 +138,42 @@ func chat(args []string) error {
 		}
 
 		beforeRaw := cur
-		beforeDoc := noMeta(beforeRaw)
-		// L0 生成：LLM 自由产出草稿，不做任何约束。
-		resp, err := p.Complete(ctx, provider.Request{System: il.SpecPrompt, Archive: beforeDoc, User: msg})
+		// L0 生成 + L1/L2：模型自由产出草稿；只记录，不拒绝、不提示。
+		turn, err := ag.Record(ctx, beforeRaw, msg)
 		if err != nil {
 			fmt.Println("!!", err)
 			stats.noteError(err)
 			continue
 		}
-		if strings.TrimSpace(resp.IntentUpdate) == "" {
+		if !turn.Changed {
 			fmt.Println("--- reply ---")
-			fmt.Println(resp.Reply)
+			fmt.Println(turn.Reply)
 			fmt.Println("(档案未变更)")
 			continue
 		}
-		// L1 确定性检查 + L2 记录员（仅 L1 报警时触发）：只记录，不拒绝、不提示。
-		after, normalized := recordArchive(ctx, p, resp.IntentUpdate, beforeDoc)
-		if normalized {
+		if turn.Normalized {
 			stats.Normalizations++
 		}
+		after := turn.Archive
 		summary := archive.Summarize(beforeRaw, after)
 		commits := lenLog(store) + 1
-		deprecated = nextDeprecated(deprecated, beforeRaw, after)
-		c, err := store.Append(summary, msg, beforeRaw, after, resp.Reply,
-			buildMetaLines(commits, createdCarry, deprecated))
+		deprecated = agent.NextDeprecated(deprecated, beforeRaw, after)
+		c, err := store.Append(summary, msg, beforeRaw, after, turn.Reply,
+			agent.BuildMetaLines(commits, createdCarry, deprecated))
 		if err != nil {
 			return err
 		}
 		cur = c.Archive
-		createdCarry, _ = parseMetaCarry(cur)
+		createdCarry, _ = agent.ParseMetaCarry(cur)
 		stats.Commits++
-		if doc, perr := il.Parse(noMeta(cur)); perr == nil {
+		if doc, perr := il.Parse(agent.NoMeta(cur)); perr == nil {
 			stats.noteLint(doc)
 		}
 		fmt.Println("--- reply ---")
-		fmt.Println(resp.Reply)
+		fmt.Println(turn.Reply)
 		printAuthorityPanel(summary)
 		fmt.Printf("--- intent_update（commit %s）---\n", c.ID)
-		fmt.Println(noMeta(c.Archive))
+		fmt.Println(agent.NoMeta(c.Archive))
 	}
 
 	if cur != "" {

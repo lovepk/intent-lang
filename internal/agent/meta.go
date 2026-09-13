@@ -1,4 +1,4 @@
-package main
+package agent
 
 import (
 	"sort"
@@ -9,10 +9,10 @@ import (
 	"intent-lang/internal/il"
 )
 
-// buildMetaLines builds the META section for the next commit.
+// BuildMetaLines builds the META section for the next commit.
 // createdCarry is the original creation timestamp (kept across commits);
 // deprecated is the accumulated list of removed CONTRACT ids.
-func buildMetaLines(commits int, createdCarry string, deprecated []string) []string {
+func BuildMetaLines(commits int, createdCarry string, deprecated []string) []string {
 	if createdCarry == "" {
 		createdCarry = time.Now().UTC().Format(time.RFC3339)
 	}
@@ -24,9 +24,9 @@ func buildMetaLines(commits int, createdCarry string, deprecated []string) []str
 	}
 }
 
-// parseMetaCarry extracts created timestamp and deprecated list from an
+// ParseMetaCarry extracts the created timestamp and deprecated list from an
 // existing archive text (or "" for none).
-func parseMetaCarry(archiveText string) (created string, deprecated []string) {
+func ParseMetaCarry(archiveText string) (created string, deprecated []string) {
 	if strings.TrimSpace(archiveText) == "" {
 		return "", nil
 	}
@@ -43,8 +43,9 @@ func parseMetaCarry(archiveText string) (created string, deprecated []string) {
 	return created, doc.MetaDeprecated()
 }
 
-// nextDeprecated returns deprecated + R ids present before but absent after.
-func nextDeprecated(existing []string, beforeText, afterText string) []string {
+// NextDeprecated returns existing deprecated ids plus R ids present before but
+// absent after (newly removed CONTRACT entries).
+func NextDeprecated(existing []string, beforeText, afterText string) []string {
 	before := setOf(contractIDsOf(beforeText))
 	after := setOf(contractIDsOf(afterText))
 	seen := map[string]bool{}
@@ -81,10 +82,10 @@ func setOf(ids []string) map[string]bool {
 	return m
 }
 
-// artifactExt returns a filename extension hint derived from the archive's
-// TARGET, or "" when the target doesn't clearly imply one. Keeps the CLI from
+// ArtifactExt returns a filename extension hint derived from an archive's
+// TARGET, or "" when the target doesn't clearly imply one. Keeps callers from
 // hard-coding python.
-func artifactExt(target string) string {
+func ArtifactExt(target string) string {
 	t := strings.ToLower(target)
 	switch {
 	case strings.Contains(t, "python") || strings.Contains(t, "py"):

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"intent-lang/internal/agent"
 	"intent-lang/internal/il"
 	"intent-lang/internal/provider"
 )
@@ -16,7 +17,7 @@ func lint(args []string) error {
 	if f["archive"] == "" && f["repo"] == "" && f["name"] == "" {
 		return fmt.Errorf("lint requires --archive <file.il> 或 --repo <dir> [--name <档案名>]")
 	}
-	source, err := loadSourceRaw(f)
+	source, err := agent.LoadSourceRaw(sourceOpts(f))
 	if err != nil {
 		return err
 	}
@@ -42,19 +43,12 @@ func lint(args []string) error {
 		if err != nil {
 			return err
 		}
-		ctx := context.Background()
-
 		fmt.Println("\n=== LLM 语义复查（档案内部） ===")
-		resp, err := p.Complete(ctx, provider.Request{
-			System:  il.LintPrompt,
-			Archive: doc.Canonical(),
-			User:    "请复查这份档案的语义一致性。",
-			Mode:    provider.ModeLint,
-		})
+		findings, err := (&agent.Agent{Model: p}).LintLLM(context.Background(), doc.Canonical())
 		if err != nil {
 			return err
 		}
-		printFindings(resp.Findings)
+		printFindings(findings)
 	}
 	return nil
 }

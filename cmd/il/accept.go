@@ -3,12 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 
-	"intent-lang/internal/il"
-	"intent-lang/internal/provider"
+	"intent-lang/internal/agent"
 )
 
 func accept(args []string) error {
@@ -30,41 +26,17 @@ func accept(args []string) error {
 	if artifactFile == "" {
 		return fmt.Errorf("accept requires --artifact <artifact>")
 	}
-	archiveText, err := loadResolvedSource(f)
-	if err != nil {
-		return err
-	}
-	absArtifact, err := filepath.Abs(artifactFile)
+	archiveText, err := agent.LoadResolvedSource(sourceOpts(f))
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
-	resp, err := p.Complete(ctx, provider.Request{
-		System:  il.AcceptTestPrompt,
-		Archive: archiveText,
-		User:    fmt.Sprintf("产物路径: %s\n请据此生成验收脚本。", absArtifact),
-		Mode:    provider.ModeRepro,
-	})
+	script, output, err := (&agent.Agent{Model: p}).Accept(context.Background(), archiveText, artifactFile)
 	if err != nil {
-		return err
-	}
-
-	script := provider.StripFence(resp.Reply)
-	tmp := filepath.Join(os.TempDir(), "il_accept_test.py")
-	if err := os.WriteFile(tmp, []byte(script), 0o644); err != nil {
 		return err
 	}
 	fmt.Println("== 生成的验收脚本 ==\n" + script + "\n")
-
-	// The acceptance harness is a Python script regardless of artifact
-	// language; the interpreter can be overridden via IL_PYTHON.
-	python := os.Getenv("IL_PYTHON")
-	if python == "" {
-		python = "python"
-	}
-	out, _ := exec.Command(python, "-X", "utf8", tmp, absArtifact).CombinedOutput()
 	fmt.Println("== 验收结果 ==")
-	fmt.Print(string(out))
+	fmt.Print(output)
 	return nil
 }

@@ -1,4 +1,4 @@
-package main
+package agent
 
 import (
 	"context"
@@ -9,12 +9,12 @@ import (
 	"intent-lang/internal/provider"
 )
 
-// l1Problems runs the deterministic (L1) consistency checks on an archive
+// L1Problems runs the deterministic (L1) consistency checks on an archive
 // draft: structural validity plus deterministic internal-contradiction lint.
 // An empty result means the draft is valid and self-consistent, so the L2
 // recorder is not needed. These checks are pure computation — they never
 // consult an LLM and never reject; they only decide whether L2 must run.
-func l1Problems(text string) []string {
+func L1Problems(text string) []string {
 	doc, err := il.Parse(text)
 	if err != nil {
 		return []string{"无法解析为档案：" + err.Error()}
@@ -31,10 +31,10 @@ func l1Problems(text string) []string {
 	return out
 }
 
-// normalizeArchive is the L2 role: the same LLM acting as a record keeper that
+// NormalizeArchive is the L2 role: the same LLM acting as a record keeper that
 // turns a draft into a valid, internally consistent archive without changing
 // any fact. It is invoked only when L1 finds a problem.
-func normalizeArchive(ctx context.Context, p provider.Provider, draft, previous string, problems []string) (string, error) {
+func NormalizeArchive(ctx context.Context, p provider.Provider, draft, previous string, problems []string) (string, error) {
 	resp, err := p.Complete(ctx, provider.Request{
 		System:  il.NormalizePrompt,
 		Archive: previous,
@@ -47,19 +47,19 @@ func normalizeArchive(ctx context.Context, p provider.Provider, draft, previous 
 	return strings.TrimSpace(provider.StripFence(resp.Reply)), nil
 }
 
-// recordArchive applies the layered model to a generator draft and returns the
+// RecordArchive applies the layered model to a generator draft and returns the
 // text that should be recorded, plus whether L2 ran and succeeded. It never
 // rejects: if L2 cannot produce a valid archive, the draft is recorded as-is.
-func recordArchive(ctx context.Context, p provider.Provider, draft, previous string) (recorded string, normalized bool) {
-	problems := l1Problems(draft)
+func RecordArchive(ctx context.Context, p provider.Provider, draft, previous string) (recorded string, normalized bool) {
+	problems := L1Problems(draft)
 	if len(problems) == 0 {
 		return draft, false
 	}
-	fixed, err := normalizeArchive(ctx, p, draft, previous, problems)
+	fixed, err := NormalizeArchive(ctx, p, draft, previous, problems)
 	if err != nil || strings.TrimSpace(fixed) == "" {
 		return draft, false
 	}
-	if len(l1Problems(fixed)) != 0 {
+	if len(L1Problems(fixed)) != 0 {
 		return draft, false
 	}
 	return fixed, true

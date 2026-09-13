@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"intent-lang/internal/agent"
 	"intent-lang/internal/il"
-	"intent-lang/internal/provider"
 )
 
 func repro(args []string) error {
@@ -22,31 +22,20 @@ func repro(args []string) error {
 	if archiveFile == "" && f["name"] == "" && f["repo"] == "" {
 		return fmt.Errorf("repro requires --archive <file.il> 或 --repo <dir> [--name <档案名>]")
 	}
-	resolved, err := loadResolvedSource(f)
+	resolved, err := agent.LoadResolvedSource(sourceOpts(f))
 	if err != nil {
 		return fmt.Errorf("load: %w", err)
 	}
-
 	doc, err := il.Parse(resolved)
 	if err != nil {
 		return fmt.Errorf("archive: %w", err)
 	}
-	if errs := doc.Validate(); len(errs) != 0 {
-		return fmt.Errorf("archive invalid: %v", errs)
-	}
 
-	ctx := context.Background()
-	resp, err := p.Complete(ctx, provider.Request{
-		System:  il.ReproPrompt,
-		Archive: doc.Canonical(),
-		User:    "请据此档案重建产物。",
-		Mode:    provider.ModeRepro,
-	})
+	out, err := (&agent.Agent{Model: p}).Reproduce(context.Background(), resolved)
 	if err != nil {
 		return err
 	}
 
-	out := strings.TrimSpace(resp.Reply)
 	outFile := f["out"]
 	if outFile == "" {
 		base := f["name"]
@@ -56,7 +45,7 @@ func repro(args []string) error {
 		if base == "" {
 			base = "artifact"
 		}
-		outFile = base + artifactExt(doc.HeaderRaw["TARGET"])
+		outFile = base + agent.ArtifactExt(doc.HeaderRaw["TARGET"])
 	}
 	if err := os.WriteFile(outFile, []byte(out), 0o644); err != nil {
 		return err

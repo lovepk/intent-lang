@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"intent-lang/internal/agent"
 	"intent-lang/internal/archive"
 	"intent-lang/internal/il"
 	"intent-lang/internal/provider"
@@ -29,6 +30,8 @@ func demo(args []string) error {
 
 	keyA := provider.NewDeepSeekFromEnv(envKeyFor("A"))
 	keyB := provider.NewDeepSeekFromEnv(envKeyFor("B"))
+	agA := &agent.Agent{Model: keyA}
+	agB := &agent.Agent{Model: keyB}
 
 	store, err := archive.Open(repoDir)
 	if err != nil {
@@ -56,32 +59,26 @@ func demo(args []string) error {
 		if msg == "" {
 			continue
 		}
-		resp, err := keyA.Complete(ctx, provider.Request{
-			System:  il.SpecPrompt,
-			Archive: noMeta(cur),
-			User:    msg,
-		})
+		turn, err := agA.Record(ctx, cur, msg)
 		if err != nil {
 			fmt.Println("!!", err)
 			continue
 		}
-		if strings.TrimSpace(resp.IntentUpdate) == "" {
-			fmt.Printf("turn: %s\n  reply: %s\n  (档案未变更)\n", msg, resp.Reply)
+		if !turn.Changed {
+			fmt.Printf("turn: %s\n  reply: %s\n  (档案未变更)\n", msg, turn.Reply)
 			continue
 		}
 		before := cur
-		// L1 确定性检查 + L2 记录员（仅 L1 报警时触发）。
-		after, _ := recordArchive(ctx, keyA, resp.IntentUpdate, noMeta(before))
-		deprecated = nextDeprecated(deprecated, before, after)
-		summary := archive.Summarize(before, after)
-		c, err := store.Append(summary, msg, before, after, resp.Reply,
-			buildMetaLines(lenLog(store)+1, createdCarry, deprecated))
+		deprecated = agent.NextDeprecated(deprecated, before, turn.Archive)
+		summary := archive.Summarize(before, turn.Archive)
+		c, err := store.Append(summary, msg, before, turn.Archive, turn.Reply,
+			agent.BuildMetaLines(lenLog(store)+1, createdCarry, deprecated))
 		if err != nil {
 			return err
 		}
 		cur = c.Archive
-		createdCarry, _ = parseMetaCarry(cur)
-		fmt.Printf("turn: %s\n  reply: %s\n  commit %s: %s\n", msg, resp.Reply, c.ID, c.Message)
+		createdCarry, _ = agent.ParseMetaCarry(cur)
+		fmt.Printf("turn: %s\n  reply: %s\n  commit %s: %s\n", msg, turn.Reply, c.ID, c.Message)
 	}
 	if cur == "" {
 		return fmt.Errorf("demo: no archive produced")
@@ -96,17 +93,11 @@ func demo(args []string) error {
 	if err != nil {
 		return err
 	}
-	reproResp, err := keyB.Complete(ctx, provider.Request{
-		System:  il.ReproPrompt,
-		Archive: doc.Canonical(),
-		User:    "请据此档案重建产物。",
-		Mode:    provider.ModeRepro,
-	})
+	artifact, err := agB.Reproduce(ctx, cur)
 	if err != nil {
 		return err
 	}
-	artifact := provider.StripFence(reproResp.Reply)
-	artifactFile := filepath.Join(repoDir, "artifact"+artifactExt(doc.HeaderRaw["TARGET"]))
+	artifactFile := filepath.Join(repoDir, "artifact"+agent.ArtifactExt(doc.HeaderRaw["TARGET"]))
 	if err := os.WriteFile(artifactFile, []byte(artifact), 0o644); err != nil {
 		return err
 	}
