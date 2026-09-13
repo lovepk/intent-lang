@@ -46,6 +46,7 @@
 ```sh
 go run ./cmd/il chat  --key A --repo .il
     # 交互式双通道对话：输入需求 → reply + 档案增量更新，每次变更写一条 commit；
+    # 每轮打印 reply↔档案 advisory 提示 + 机器 diff 权威摘要；
     # 退出时打印规范遵守统计（validate 拒绝类型 + lint 位置计数，供语言 v2 演进参考）
 go run ./cmd/il verify --key A --msg "加上乘法"
     # 单轮遵守度检查：看模型对这份档案的重写是否合法

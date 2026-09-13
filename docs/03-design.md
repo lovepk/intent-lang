@@ -69,16 +69,16 @@
 
 ### 3.2 响应格式
 
-Provider 的统一响应结构（对各真实实现一致）：
+Provider 的统一响应结构（对各真实实现一致）。**字段顺序有语义：先 `intent_update` 后 `reply`**——LLM 自回归生成时，reply 因此条件于它刚写下的档案，实现"档案为主、回复为辅"（单次调用，无额外开销）：
 
 ```json
 {
-  "reply": "给用户看的文字…",
-  "intentUpdate": "<完整的新档案 B 文本>"
+  "intent_update": "<完整的新档案 B 文本，先写>",
+  "reply": "给用户看的文字，后写、且只描述刚写下的档案…"
 }
 ```
 
-意图语言文本本身见 `il-spec.md`。Agent 对 `intentUpdate` 的期望是"合法 IL 文档"，通过 `il` 模块校验后才能落盘；校验失败时走降级策略（见 6.1）。
+意图语言文本本身见 `il-spec.md`。Agent 对 `intentUpdate` 的期望是"合法 IL 文档"，通过 `il` 模块校验后才能落盘；校验失败时走降级策略（见 6.1）。reply 与 intent_update 冲突时以 intent_update 为准。
 
 ### 3.3 复现数据流（Reproduce）
 
@@ -171,6 +171,16 @@ type Response struct {
 - **为什么符合语言哲学**：确定性留给系统（集合差是纯计算），创造性留给 LLM（只让它声明意图，不自我评审"相关不相关"）；不引入"LLM 判 LLM"的偏袒。
 - 实现：`internal/il/diff.go`（CompareEntries）、`cmd meta.go`（undeclaredChanges）、chat 提交前置检查。
 - **实测**：真实 deepseek 上闸门有效拦截"加了功能却顺手改 ACCEPT/OPEN 未声明"的越权改动。已知张力：模型为澄清问题而做的善意准备性改动也会被拦——这是设计取舍：宁可拦下善意越权让用户显式确认，也不放任静默漂移。
+
+### 6.5 回复一致性（reply ↔ 档案）
+
+自由文本的 reply 与结构化档案之间没有可判定的等价关系（自然语言无形式语义），因此**不追求"保证一致"**，而是用三层收口——且全程保留 reply 的生成自由度（不采用"档案先行、reply 条件重写"的两遍生成）：
+
+1. **确定性校验 `il.CheckReplyClaims`**：reply 提到的条目 id 必须存在于档案（否则 error，抓幻觉）；与变更动词同句出现、却不在 `declared_changes` 的 id 记 suggestion。仅提示、不阻断（`internal/il/reply.go`）。
+2. **advisory 语义复查**：`lint --llm --reply <reply.txt> [--before <old.il>]` 用 `LintReplyPrompt` 检查 reply 是否虚报/隐瞒/幻觉（`provider.ModeLint`）。
+3. **权威分离**：档案是唯一权威，`chat` 独立打印机器 diff 摘要（"档案实际变更（权威，机器 diff）"），reply 被定义为非契约。即使前两层漏检，用户仍有权威来源对照，不一致退化为**话术偏差**而非正确性缺陷。
+
+> 边界：这三层能把"reply 骗了用户"的窗口压到最小，但**不存在 100% 的检查**——因为第 1 层之外的意义级判断不可判定，第 2 层是概率性的。这与 G3 的分层保证一致：不承诺全局一致，只承诺可判定的子集 + 显式声明的自由。
 
 ## 7. 目录规划
 

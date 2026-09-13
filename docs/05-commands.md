@@ -49,7 +49,10 @@ il chat --key A --repo .il
 
 - 对话结束自动写出 `.il/archive.last.il`（最新档案，供 repro/lint 使用）。
 - 变更受**闸门**保护：模型改了却没在 `declared_changes` 里声明的条目会被拒绝落库。
+- **交付原子性**：校验/闸门失败时本次不落库，且**扣留模型回复**（它描述的是未生效的改动），只报系统错误——避免用户以为改动已生效。
 - 无关消息（闲聊）不产生 commit。
+- **reply↔档案 advisory 提示**：`il.CheckReplyClaims` 确定性检查 reply 提到的条目 id 是否存在、声称改动是否已声明，仅提示不阻断。
+- 每轮额外打印 `--- 档案实际变更（权威，机器 diff）---` 摘要，作为不受 reply 影响的权威变更记录。
 
 ### 2. `verify` — 单轮无副作用预览（v2）
 
@@ -61,18 +64,20 @@ il verify --key A --repo .il --name app --msg "加上除法"       # 仓库多�
 # 输出: reply + 判定（可通过变更闸门 / 会被拦截）+ 模型重写后的完整档案
 ```
 
-> 与 `chat` 的区别：`chat` 会落库成 commit，`verify` 只预览不落库——模型若改了没声明的条目，verify 会提示"经 chat 提交会被拒绝"。
+> 与 `chat` 的区别：`chat` 会落库成 commit，`verify` 只预览不落库——模型若改了没声明的条目，verify 会提示"经 chat 提交会被拒绝"。verify 同样展示 reply↔档案 advisory 提示与机器 diff 权威摘要。
 
 ### 3. `lint` — 语言体检
 
 两层检查：
 - **确定性结构 lint**：SNIPPET/FIDELITY 不匹配、META.spec 版本、OPEN 空 default、悬空引用、OPEN 已收敛、引用出现在禁止段、最小档案等（快、零成本）。
 - `--llm` **LLM 语义复查**：找需要理解力的矛盾（ACCEPT 与被否功能冲突、SNIPPET 锁定代码与 CONTRACT 冲突、引用一致性），领域无关。
+- `--llm --reply <reply.txt>`：追加 **reply ↔ 档案一致性复查**（可配 `--before <旧档案.il>` 作为对照），检查 reply 是否虚报/隐瞒/幻觉。
 
 ```sh
 il lint --archive calc.il              # 结构检查
 il lint --repo .il --name app          # 检查仓库内某档案
 il lint --llm --key A --archive calc.il # + LLM 复查
+il lint --llm --key A --archive calc.il --before old.il --reply reply.txt  # reply 一致性复查
 ```
 
 ### 4. `repro` — 失忆复现

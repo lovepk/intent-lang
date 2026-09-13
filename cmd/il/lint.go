@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	"intent-lang/internal/il"
 	"intent-lang/internal/provider"
@@ -38,13 +40,14 @@ func lint(args []string) error {
 	fmt.Print(doc.LintString())
 
 	if f["llm"] == "true" {
-		fmt.Println("\n=== LLM 语义复查 ===")
 		p, err := makeProvider(f)
 		if err != nil {
 			return err
 		}
 		p = retryProvider(p, f)
 		ctx := context.Background()
+
+		fmt.Println("\n=== LLM 语义复查（档案内部） ===")
 		resp, err := p.Complete(ctx, provider.Request{
 			System:  il.LintPrompt,
 			Archive: doc.Canonical(),
@@ -54,24 +57,58 @@ func lint(args []string) error {
 		if err != nil {
 			return err
 		}
-		if len(resp.Findings) == 0 {
-			fmt.Println("LLM 复查: 未发现语义矛盾")
-			return nil
-		}
-		for _, fi := range resp.Findings {
-			sev := fi.Severity
-			if sev == "" {
-				sev = "suggestion"
+		printFindings(resp.Findings)
+
+		// Optional: review whether a free-text reply matches this archive.
+		if replyFile := f["reply"]; replyFile != "" {
+			replyData, err := os.ReadFile(replyFile)
+			if err != nil {
+				return fmt.Errorf("read --reply: %w", err)
 			}
-			where := fi.Section
-			if fi.ID != "" {
-				where += " " + fi.ID
+			before := ""
+			if bf := f["before"]; bf != "" {
+				data, err := os.ReadFile(bf)
+				if err != nil {
+					return fmt.Errorf("read --before: %w", err)
+				}
+				before = string(data)
 			}
-			fmt.Printf("[%s] %s: %s\n", sev, where, fi.Msg)
-			if fi.Fix != "" {
-				fmt.Println("  建议: " + fi.Fix)
+			fmt.Println("\n=== LLM 语义复查（reply ↔ 档案） ===")
+			user := fmt.Sprintf("【上一版档案】\n```\n%s\n```\n\n【本版档案】\n```\n%s\n```\n\n【LLM 给用户的回复】\n%s\n\n请检查 reply 与本版档案是否一致。",
+				before, doc.Canonical(), strings.TrimSpace(string(replyData)))
+			rr, err := p.Complete(ctx, provider.Request{
+				System: il.LintReplyPrompt,
+				User:   user,
+				Mode:   provider.ModeLint,
+			})
+			if err != nil {
+				return err
 			}
+			printFindings(rr.Findings)
 		}
 	}
 	return nil
+}
+
+// printFindings renders LLM lint findings (shared by the archive-internal and
+// reply↔archive reviews).
+func printFindings(findings []provider.Finding) {
+	if len(findings) == 0 {
+		fmt.Println("LLM 复查: 未发现问题")
+		return
+	}
+	for _, fi := range findings {
+		sev := fi.Severity
+		if sev == "" {
+			sev = "suggestion"
+		}
+		where := fi.Section
+		if fi.ID != "" {
+			where += " " + fi.ID
+		}
+		fmt.Printf("[%s] %s: %s\n", sev, where, fi.Msg)
+		if fi.Fix != "" {
+			fmt.Println("  建议: " + fi.Fix)
+		}
+	}
 }

@@ -147,6 +147,17 @@
 - ✅ stats 补齐：lint 计数分 error/suggestion 汇总。
 - ✅ lint --llm SNIPPET 检查方向校准：明确"SNIPPET 代码与 CONTRACT 冲突→error"；真实验证能抓 print(stdout) vs R1(stderr) 冲突，并在 calculator fixture 上发现 SNIPPET 只有 apply 而 ACCEPT 测 add 的真实缺陷。
 
+## M8 — 回复一致性（reply ↔ 档案，已完成）
+
+> 目标：在不牺牲 reply 生成自由度的前提下，处理"LLM 对用户说的话"与"LLM 写的档案"不一致的问题。
+
+**结论（设计）**：自由文本与结构化档案之间无可判定的等价关系，故不承诺"保证一致"，改为三层收口（保留 reply 生成自由度，不做两遍生成）：
+1. ✅ **确定性校验 `il.CheckReplyClaims`**（`internal/il/reply.go`）：reply 提到的条目 id 必须在档案中存在（error）；与变更动词同句、却不在 `declared_changes` 的 id 记 suggestion。仅提示不阻断。单测覆盖幻觉/漏声明/纯引用/相邻 id 等。
+2. ✅ **advisory 语义复查**：`LintReplyPrompt` + `lint --llm --reply <file> [--before <old.il>]`，检查 reply 虚报/隐瞒/幻觉。
+3. ✅ **权威分离**：chat/verify 独立打印机器 diff 摘要（"档案实际变更（权威）"），reply 定义为非契约。
+
+**验收**：`go build ./...` / `go test ./...` 全通过（含新增 reply 单测）。
+
 ## 展望（超出当前范围，仅记录）
 
 - 档案库检索（场景 5）；多档案引用；让意图档案被确定性编译器直接消费（脱离 LLM）的探索。

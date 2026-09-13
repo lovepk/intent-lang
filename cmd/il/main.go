@@ -169,50 +169,57 @@ func chat(args []string) error {
 
 		beforeRaw := cur
 		beforeDoc := noMeta(beforeRaw)
-		if resp, err := p.Complete(ctx, provider.Request{System: il.SpecPrompt, Archive: beforeDoc, User: msg}); err != nil {
+		resp, err := p.Complete(ctx, provider.Request{System: il.SpecPrompt, Archive: beforeDoc, User: msg})
+		if err != nil {
 			fmt.Println("!!", err)
 			stats.noteValidate([]error{err})
 			continue
-		} else {
+		}
+		if strings.TrimSpace(resp.IntentUpdate) == "" {
 			fmt.Println("--- reply ---")
 			fmt.Println(resp.Reply)
-			if strings.TrimSpace(resp.IntentUpdate) == "" {
-				fmt.Println("(档案未变更)")
-				continue
-			}
-			after := resp.IntentUpdate
-			if errs := validateIL(after); errs != nil {
-				fmt.Println("!! 输出不是合法档案，已拒绝：", errs)
-				stats.noteValidate(errs)
-				continue
-			}
-			// 变更闸门：模型声明了改哪些条目；机器 diff 若发现"改了却没声明"，
-			// 视为越权改动，拒绝落库（确定性守卫，保护已消歧事实不被顺手改动）。
-			if over := undeclaredChanges(beforeRaw, after, resp.DeclaredChanges); len(over) > 0 {
-				fmt.Println("!! 变更闸门拒绝：模型改动以下条目但未在 declared_changes 中声明：")
-				for _, c := range over {
-					fmt.Printf("   [%s] %s\n", c.Kind, c.ID)
-				}
-				fmt.Println("   已消歧事实可能被顺手改动。请重新表达需求让模型如实声明改动，或人工核对。")
-				stats.noteValidate([]error{fmt.Errorf("undeclared changes: %v", over)})
-				continue
-			}
-			commits := lenLog(store) + 1
-			deprecated = nextDeprecated(deprecated, beforeRaw, after)
-			c, err := store.Append(archive.Summarize(beforeRaw, after), msg, beforeRaw, after, resp.Reply,
-				buildMetaLines(commits, createdCarry, deprecated))
-			if err != nil {
-				return err
-			}
-			cur = c.Archive
-			createdCarry, _ = parseMetaCarry(cur)
-			stats.Commits++
-			if doc, perr := il.Parse(noMeta(cur)); perr == nil {
-				stats.noteLint(doc)
-			}
-			fmt.Printf("--- intent_update（commit %s）---\n", c.ID)
-			fmt.Println(noMeta(c.Archive))
+			reportReplyClaims(resp.Reply, beforeDoc, nil)
+			fmt.Println("(档案未变更)")
+			continue
 		}
+		after := resp.IntentUpdate
+		if errs := validateIL(after); errs != nil {
+			fmt.Println("!! 输出不是合法档案，本次改动未落库：", errs)
+			fmt.Println("   为避免误导，模型回复已扣留（它描述的是未落库的改动）。请重新表达需求。")
+			stats.noteValidate(errs)
+			continue
+		}
+		// 变更闸门：模型声明了改哪些条目；机器 diff 若发现"改了却没声明"，
+		// 视为越权改动，拒绝落库（确定性守卫，保护已消歧事实不被顺手改动）。
+		if over := undeclaredChanges(beforeRaw, after, resp.DeclaredChanges); len(over) > 0 {
+			fmt.Println("!! 变更闸门拒绝：模型改动以下条目但未在 declared_changes 中声明：")
+			for _, c := range over {
+				fmt.Printf("   [%s] %s\n", c.Kind, c.ID)
+			}
+			fmt.Println("   本次改动未落库。为避免误导，模型回复已扣留。请重新表达需求让模型如实声明改动，或人工核对。")
+			stats.noteValidate([]error{fmt.Errorf("undeclared changes: %v", over)})
+			continue
+		}
+		summary := archive.Summarize(beforeRaw, after)
+		commits := lenLog(store) + 1
+		deprecated = nextDeprecated(deprecated, beforeRaw, after)
+		c, err := store.Append(summary, msg, beforeRaw, after, resp.Reply,
+			buildMetaLines(commits, createdCarry, deprecated))
+		if err != nil {
+			return err
+		}
+		cur = c.Archive
+		createdCarry, _ = parseMetaCarry(cur)
+		stats.Commits++
+		if doc, perr := il.Parse(noMeta(cur)); perr == nil {
+			stats.noteLint(doc)
+		}
+		fmt.Println("--- reply ---")
+		fmt.Println(resp.Reply)
+		reportReplyClaims(resp.Reply, noMeta(cur), resp.DeclaredChanges)
+		printAuthorityPanel(summary)
+		fmt.Printf("--- intent_update（commit %s）---\n", c.ID)
+		fmt.Println(noMeta(c.Archive))
 	}
 
 	if cur != "" {

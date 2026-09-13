@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"intent-lang/internal/archive"
 	"intent-lang/internal/il"
 	"intent-lang/internal/provider"
 )
@@ -55,6 +56,7 @@ func verify(args []string) error {
 	fmt.Println(resp.Reply)
 
 	if strings.TrimSpace(resp.IntentUpdate) == "" {
+		reportReplyClaims(resp.Reply, beforeDoc, nil)
 		fmt.Println("== 判定 ==\n(档案未变更)")
 		return nil
 	}
@@ -71,7 +73,9 @@ func verify(args []string) error {
 	}
 
 	// change gate: actual machine diff vs declared changes
+	gateOK := true
 	if over := undeclaredChanges(source, after, resp.DeclaredChanges); len(over) > 0 {
+		gateOK = false
 		fmt.Println("== 判定：变更闸门会拦截 ==")
 		for _, c := range over {
 			fmt.Printf("  [%s] %s\n", c.Kind, c.ID)
@@ -84,6 +88,12 @@ func verify(args []string) error {
 		} else {
 			fmt.Println("(无档案变更声明)")
 		}
+	}
+
+	// preview the reply↔archive consistency findings chat would show.
+	reportReplyClaims(resp.Reply, noMeta(after), resp.DeclaredChanges)
+	if gateOK {
+		printAuthorityPanel(archive.Summarize(source, after))
 	}
 
 	fmt.Println("== 模型重写后的档案（预览，未提交） ==")

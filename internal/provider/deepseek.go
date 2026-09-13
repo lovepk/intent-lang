@@ -142,8 +142,8 @@ func (d *DeepSeek) Complete(ctx context.Context, req Request) (Response, error) 
 	}
 
 	var out struct {
-		Reply           string   `json:"reply"`
 		IntentUpdate    string   `json:"intent_update"`
+		Reply           string   `json:"reply"`
 		DeclaredChanges []string `json:"declared_changes"`
 	}
 	if err := json.Unmarshal([]byte(content), &out); err != nil {

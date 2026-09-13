@@ -73,7 +73,8 @@ func demo(args []string) error {
 		before := cur
 		after := resp.IntentUpdate
 		deprecated = nextDeprecated(deprecated, before, after)
-		c, err := store.Append(archive.Summarize(before, after), msg, before, after, resp.Reply,
+		summary := archive.Summarize(before, after)
+		c, err := store.Append(summary, msg, before, after, resp.Reply,
 			buildMetaLines(lenLog(store)+1, createdCarry, deprecated))
 		if err != nil {
 			return err
@@ -81,6 +82,7 @@ func demo(args []string) error {
 		cur = c.Archive
 		createdCarry, _ = parseMetaCarry(cur)
 		fmt.Printf("turn: %s\n  reply: %s\n  commit %s: %s\n", msg, resp.Reply, c.ID, c.Message)
+		reportReplyClaims(resp.Reply, noMeta(cur), resp.DeclaredChanges)
 	}
 	if cur == "" {
 		return fmt.Errorf("demo: no archive produced")

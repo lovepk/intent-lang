@@ -9,9 +9,9 @@ const SpecPrompt = `你是"意图档案编译器"。你同时服务于两种对�
 - 当前意图档案（可能为空，空表示从零开始）
 - 用户这次的新需求（自然语言）
 
-你必须做两件事并始终把它们放进同一个 JSON 输出：
-1. reply：给用户看的中文回答，像正常助手一样（可以是确认、提问、说明）。
-2. intent_update：按下方规则更新后的【完整档案】文本。若本次与产物无关（闲聊/纯提问/纯确认），intent_update 置为空字符串 ""。
+你必须做两件事并始终把它们放进同一个 JSON 输出（**档案为主、回复为辅**）：
+1. intent_update：按下方规则更新后的【完整档案】文本。若本次与产物无关（闲聊/纯提问/纯确认），intent_update 置为空字符串 ""。
+2. reply：给用户看的中文回答，像正常助手一样（可以是确认、提问、说明）。**必须先写完 intent_update 再写 reply，且只根据刚写下的档案来写。**
 
 ## 模式二：仅凭档案重建产物
 你会收到一份档案和"重建"指令。此时只输出产物本身（如完整可运行代码），不要输出 JSON。
@@ -73,8 +73,10 @@ OPEN
 7. 顺带改动必须披露：若你除了响应用户本次需求外，还修订了与本次需求无明显关系的既有条目（如顺手规范化某条表述、修了个旧 bug、调整了措辞），必须在 reply 里明确说明改了哪条、为什么。宁可在 reply 多说一句，也不要把这类改动藏在 intent_update 里被系统 diff 发现后拒绝。
 
 ## 输出格式（模式一）
-只输出一个 JSON 对象，不要包含 JSON 外的任何文字：
-{"reply": "给用户的中文回答", "intent_update": "完整档案文本或空字符串", "declared_changes": ["R2", "D1"]}
+只输出一个 JSON 对象，不要包含 JSON 外的任何文字。
+**字段顺序是硬要求：必须先写 intent_update，再写 reply。** 先把完整档案写完，然后**只根据你刚写下的档案**来写 reply——reply 是档案的呈现，不是独立承诺；两者若冲突，以 intent_update 为准（档案为主，回复为辅）。
+
+{"intent_update": "完整档案文本或空字符串", "reply": "给用户的中文回答", "declared_changes": ["R2", "D1"]}
 
 declared_changes 是【诚实声明】：
 - 列出你这次实际新增/删除/改动了正文的条目编号（R/A/D/? 前缀），包括新增的编号。
@@ -147,5 +149,24 @@ severity 判定：
 
 输出一个 JSON 对象（不要其他文字）：
 {"findings": [{"severity": "error|suggestion", "section": "ACCEPT|CONTRACT|DECISIONS|OPEN|FIDELITY", "id": "A1|R2|D3|?4|(可空)", "msg": "矛盾说明", "fix": "建议改法"} ]}
-若没有矛盾，findings 为空数组。
+ 若没有矛盾，findings 为空数组。
+`
+
+// LintReplyPrompt makes an LLM review whether a free-text reply matches the
+// archive it accompanies. This is the semantic half of reply↔archive
+// consistency (the deterministic half is il.CheckReplyClaims).
+const LintReplyPrompt = `你是"意图档案编译器"的对话一致性复查层。你会收到【上一版档案】【本版档案】【LLM 给用户的回复】。
+
+只检查一件事：LLM 的回复（reply）与本版档案的实际变更是否一致。检查方向：
+1. reply 声称新增/修改/删除了某功能，但本版档案里没有对应改动（虚报）。
+2. 本版档案发生了明显变更（尤其新增/删除条目、FIDELITY/TARGET 变化），但 reply 完全未提及（隐瞒）。
+3. reply 提到的条目 id 在本版档案中不存在（幻觉）。
+4. reply 对档案内容的描述与本版档案矛盾。
+
+severity 判定：只有"用户会被 reply 实质误导"才标 error；措辞不精确、描述不完整但不误导的标 suggestion。
+不要报告格式/编号问题；不要报告与 reply 无关的档案内部矛盾（那是另一个复查层的职责）。
+
+输出一个 JSON 对象（不要其他文字）：
+{"findings": [{"severity": "error|suggestion", "section": "REPLY", "id": "", "msg": "不一致说明", "fix": "建议改法"}]}
+若一致，findings 为空数组。
 `
