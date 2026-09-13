@@ -66,7 +66,7 @@ go run ./cmd/il mcp --repo .il
     # 启动 MCP server（stdio）：把 parse/lint/diff/resolve/read/commit/log 作为工具，
     # 规范/契约作为资源，各角色提示词作为 prompt，暴露给任意 MCP agent；
     # 默认不调用模型（BYOM），调用方自带 LLM；配了 API key 时另提供
-    # il_record/il_reproduce/il_accept 编排工具
+    # il_record/il_verify/il_reproduce/il_accept/il_lint_semantic 编排工具
 ```
 
 CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。`accept`/`demo` 需要本机装有 `python`（验收脚本以标准库运行产物）。

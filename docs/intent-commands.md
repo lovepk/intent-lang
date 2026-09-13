@@ -138,7 +138,7 @@ il mcp --repo .il      # 启动；请求/响应为换行分隔的 JSON-RPC 2.0
 ```
 
 - **tools（纯、无 LLM）**：`il_parse`、`il_lint`、`il_diff`、`il_resolve`、`il_read`、`il_commit`、`il_log`。
-- **tools（可选编排，会调用模型）**：检测到 API key（`--key A|B`）时额外提供 `il_record`（双通道一轮）、`il_reproduce`（复现）、`il_accept`（验收）；未配 key 则只暴露上面的纯工具。
+- **tools（可选编排，会调用模型）**：检测到 API key（`--key A|B`）时额外提供 `il_record`（双通道一轮）、`il_verify`（单轮预览、不落库）、`il_reproduce`（复现）、`il_accept`（验收）、`il_lint_semantic`（LLM 语义复查）；未配 key 则只暴露上面的纯工具。
 - **prompts（权威提示词）**：`write`（SpecPrompt）、`repro`、`accept`、`lint`、`normalize`。
 - **resources（只读权威文档）**：`il://spec`、`il://agent`、`il://keywords`。
 - 典型 BYOM 用法：agent 取 `write` prompt → 用自己的 LLM 产出档案 → 调 `il_lint` 校验 → 调 `il_commit` 落库。

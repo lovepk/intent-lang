@@ -65,8 +65,13 @@ type fakeModel struct {
 func (f *fakeModel) Name() string { return "fake" }
 
 func (f *fakeModel) Complete(_ context.Context, req provider.Request) (provider.Response, error) {
-	if req.Mode == provider.ModeRepro {
+	switch req.Mode {
+	case provider.ModeRepro:
 		return provider.Response{Reply: "print('hi')"}, nil
+	case provider.ModeLint:
+		return provider.Response{Findings: []provider.Finding{
+			{Severity: "error", Section: "ACCEPT", ID: "A1", Msg: "与 CONTRACT 冲突", Fix: "删掉 A1"},
+		}}, nil
 	}
 	return provider.Response{Reply: f.reply, IntentUpdate: f.intentUpdate}, nil
 }
@@ -327,5 +332,30 @@ func TestToolAccept(t *testing.T) {
 	}))
 	if got := toolText(t, resp); !strings.Contains(got, "生成的验收脚本") {
 		t.Errorf("il_accept output = %q", got)
+	}
+}
+
+func TestToolVerify(t *testing.T) {
+	model := &fakeModel{reply: "预览", intentUpdate: sampleArchive}
+	resp := callModel(t, "", model, rpcReq(t, 1, "tools/call", map[string]any{
+		"name":      "il_verify",
+		"arguments": map[string]any{"archive": sampleArchive, "user_msg": "加上 R2"},
+	}))
+	got := toolText(t, resp)
+	for _, want := range []string{"reply:", "预览", "--- archive ---"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("il_verify output missing %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestToolLintSemantic(t *testing.T) {
+	resp := callModel(t, "", &fakeModel{}, rpcReq(t, 1, "tools/call", map[string]any{
+		"name":      "il_lint_semantic",
+		"arguments": map[string]any{"archive": sampleArchive},
+	}))
+	got := toolText(t, resp)
+	if !strings.Contains(got, "与 CONTRACT 冲突") || !strings.Contains(got, "ACCEPT A1") {
+		t.Errorf("il_lint_semantic output = %q", got)
 	}
 }

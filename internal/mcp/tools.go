@@ -104,6 +104,27 @@ func (s *Server) orchestratorTools() []tool {
 			handler: s.toolRecord,
 		},
 		{
+			name:        "il_verify",
+			description: "（可选，会调用服务端配置的模型）单轮预览：对仓库当前档案（或给定 archive）应用一条需求，返回 reply + 变更，不落库。等价于 CLI verify。",
+			schema: objSchema(map[string]any{
+				"archive":  strProp("档案文本；省略则用 repo/name 读仓库最新"),
+				"repo":     strProp("仓库目录"),
+				"name":     strProp("档案名（默认 main）"),
+				"user_msg": strProp("用户本次需求（必填）"),
+			}, "user_msg"),
+			handler: s.toolVerify,
+		},
+		{
+			name:        "il_lint_semantic",
+			description: "（可选，会调用服务端配置的模型）语义复查：找档案内部需要理解力的矛盾（ACCEPT 与被否功能冲突、SNIPPET 与 CONTRACT 冲突等）。",
+			schema: objSchema(map[string]any{
+				"archive": strProp("档案文本；省略则用 repo/name 读仓库最新"),
+				"repo":    strProp("仓库目录"),
+				"name":    strProp("档案名（默认 main）"),
+			}),
+			handler: s.toolLintSemantic,
+		},
+		{
 			name:        "il_reproduce",
 			description: "（可选，会调用服务端配置的模型）仅凭档案重建产物。给定 archive 文本，或省略并用 repo/name 从仓库读取（自动展开 <ref>）。",
 			schema: objSchema(map[string]any{
@@ -140,15 +161,39 @@ func (s *Server) toolRecord(args map[string]any) (string, error) {
 			}
 		}
 	}
+	return s.recordTurn(before, userMsg)
+}
+
+func (s *Server) toolVerify(args map[string]any) (string, error) {
+	userMsg := argString(args, "user_msg")
+	if userMsg == "" {
+		return "", fmt.Errorf("user_msg is required")
+	}
+	source := argString(args, "archive")
+	if source == "" {
+		text, err := agent.LoadSourceRaw(s.sourceOpts(args))
+		if err != nil {
+			return "", err
+		}
+		source = text
+	}
+	return s.recordTurn(source, userMsg)
+}
+
+func (s *Server) recordTurn(before, userMsg string) (string, error) {
 	turn, err := (&agent.Agent{Model: s.model}).Record(context.Background(), before, userMsg)
 	if err != nil {
 		return "", err
 	}
+	return renderTurn(turn), nil
+}
+
+func renderTurn(turn agent.Turn) string {
 	var b strings.Builder
 	b.WriteString("reply:\n" + turn.Reply + "\n")
 	if !turn.Changed {
 		b.WriteString("\n(档案未变更)")
-		return b.String(), nil
+		return b.String()
 	}
 	b.WriteString("\n--- archive ---\n" + turn.Archive)
 	if changed := turn.Diff.Changed(); len(changed) > 0 {
@@ -156,6 +201,40 @@ func (s *Server) toolRecord(args map[string]any) (string, error) {
 	}
 	if turn.Normalized {
 		b.WriteString("\n(L1 发现问题，L2 记录员已整理)")
+	}
+	return b.String()
+}
+
+func (s *Server) toolLintSemantic(args map[string]any) (string, error) {
+	archiveText := argString(args, "archive")
+	if archiveText == "" {
+		text, err := agent.LoadSourceRaw(s.sourceOpts(args))
+		if err != nil {
+			return "", err
+		}
+		archiveText = text
+	}
+	findings, err := (&agent.Agent{Model: s.model}).LintLLM(context.Background(), archiveText)
+	if err != nil {
+		return "", err
+	}
+	if len(findings) == 0 {
+		return "LLM 复查: 未发现问题", nil
+	}
+	var b strings.Builder
+	for _, f := range findings {
+		sev := f.Severity
+		if sev == "" {
+			sev = "suggestion"
+		}
+		where := f.Section
+		if f.ID != "" {
+			where += " " + f.ID
+		}
+		fmt.Fprintf(&b, "[%s] %s: %s\n", sev, where, f.Msg)
+		if f.Fix != "" {
+			b.WriteString("  建议: " + f.Fix + "\n")
+		}
 	}
 	return b.String(), nil
 }
