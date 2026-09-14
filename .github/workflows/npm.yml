@@ -43,13 +43,27 @@ jobs:
       - name: Publish platform packages
         run: |
           for d in npm/platforms/*/; do
-            echo "publishing $d"
-            npm publish "$d" --access public
+            name=$(node -p "require('./$d/package.json').name")
+            ver=$(node -p "require('./$d/package.json').version")
+            if npm view "$name@$ver" version >/dev/null 2>&1; then
+              echo "skip $name@$ver (already published)"
+            else
+              echo "publishing $name@$ver"
+              npm publish "$d" --access public
+            fi
           done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish main package
-        run: npm publish npm/intent-lang --access public
+        run: |
+          name=$(node -p "require('./npm/intent-lang/package.json').name")
+          ver=$(node -p "require('./npm/intent-lang/package.json').version")
+          if npm view "$name@$ver" version >/dev/null 2>&1; then
+            echo "skip $name@$ver (already published)"
+          else
+            echo "publishing $name@$ver"
+            npm publish npm/intent-lang --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
