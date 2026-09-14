@@ -1,0 +1,40 @@
+{
+  "name": "@lovepk/intent-lang",
+  "version": "0.1.0",
+  "description": "Intent archive format & protocol for agents — CLI + MCP server (binary distribution)",
+  "bin": {
+    "il": "bin/il.js"
+  },
+  "files": [
+    "bin"
+  ],
+  "optionalDependencies": {
+    "@lovepk/intent-lang-linux-x64": "0.1.0",
+    "@lovepk/intent-lang-linux-arm64": "0.1.0",
+    "@lovepk/intent-lang-darwin-x64": "0.1.0",
+    "@lovepk/intent-lang-darwin-arm64": "0.1.0",
+    "@lovepk/intent-lang-win32-x64": "0.1.0",
+    "@lovepk/intent-lang-win32-arm64": "0.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lovepk/intent-lang.git"
+  },
+  "homepage": "https://github.com/lovepk/intent-lang",
+  "bugs": {
+    "url": "https://github.com/lovepk/intent-lang/issues"
+  },
+  "keywords": [
+    "intent",
+    "llm",
+    "ai-agents",
+    "mcp",
+    "protocol",
+    "reproducible",
+    "vibe-coding"
+  ]
+}

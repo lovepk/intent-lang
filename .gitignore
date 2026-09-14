@@ -11,4 +11,8 @@ archive.last.il
 .il/
 *.vsix
 
+# npm distribution: platform binaries are build artifacts
+node_modules/
+npm/platforms/
+
 
