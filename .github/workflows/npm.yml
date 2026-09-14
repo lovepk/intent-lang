@@ -48,7 +48,7 @@ jobs:
             echo "skip $name@$ver (already published)"
           else
             echo "publishing $name@$ver"
-            npm publish npm/intent-lang --access public
+            npm publish ./npm/intent-lang --access public
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -62,7 +62,7 @@ jobs:
               echo "skip $name@$ver (already published)"
             else
               echo "publishing $name@$ver"
-              npm publish "$d" --access public || echo "::warning::failed to publish $name@$ver (may be spam-detection/rate-limit; retry later)"
+              npm publish "./$d" --access public || echo "::warning::failed to publish $name@$ver (may be spam-detection/rate-limit; retry later)"
             fi
           done
         env:
