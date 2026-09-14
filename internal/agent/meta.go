@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"intent-lang/internal/il"
+	"github.com/anomalyco/intent-lang/internal/il"
 )
 
 // BuildMetaLines builds the META section for the next commit.

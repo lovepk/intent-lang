@@ -10,6 +10,5 @@ artifact.py
 archive.last.il
 .il/
 *.vsix
-testdata/
 
 

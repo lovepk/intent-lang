@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"intent-lang/internal/il"
+	"github.com/anomalyco/intent-lang/internal/il"
 )
 
 func testDoc(contract ...string) string {

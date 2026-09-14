@@ -1,7 +1,7 @@
 package archive
 
 import (
-	"intent-lang/internal/il"
+	"github.com/anomalyco/intent-lang/internal/il"
 )
 
 // attachMeta re-serializes an archive text, stripping any META it may carry

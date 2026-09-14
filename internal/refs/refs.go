@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"intent-lang/internal/il"
+	"github.com/anomalyco/intent-lang/internal/il"
 )
 
 // Loader supplies an archive's text by name (without .il extension).

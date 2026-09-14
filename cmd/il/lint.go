@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"intent-lang/internal/agent"
-	"intent-lang/internal/il"
-	"intent-lang/internal/provider"
+	"github.com/anomalyco/intent-lang/internal/agent"
+	"github.com/anomalyco/intent-lang/internal/il"
+	"github.com/anomalyco/intent-lang/internal/provider"
 )
 
 func lint(args []string) error {

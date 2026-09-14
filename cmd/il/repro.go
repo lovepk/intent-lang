@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"intent-lang/internal/agent"
-	"intent-lang/internal/il"
+	"github.com/anomalyco/intent-lang/internal/agent"
+	"github.com/anomalyco/intent-lang/internal/il"
 )
 
 func repro(args []string) error {

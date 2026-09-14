@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"intent-lang/internal/il"
-	"intent-lang/internal/provider"
+	"github.com/anomalyco/intent-lang/internal/il"
+	"github.com/anomalyco/intent-lang/internal/provider"
 )
 
 // Agent is the model-driven half of IL: it runs the dual-channel turn, the

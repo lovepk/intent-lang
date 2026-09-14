@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"intent-lang/internal/agent"
-	"intent-lang/internal/archive"
+	"github.com/anomalyco/intent-lang/internal/agent"
+	"github.com/anomalyco/intent-lang/internal/archive"
 )
 
 // verify previews, without committing, how the model would rewrite an archive

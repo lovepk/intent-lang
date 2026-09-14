@@ -10,11 +10,11 @@ import (
 	"context"
 	"time"
 
-	"intent-lang/internal/agent"
-	"intent-lang/internal/archive"
-	"intent-lang/internal/il"
-	"intent-lang/internal/provider"
-	"intent-lang/internal/refs"
+	"github.com/anomalyco/intent-lang/internal/agent"
+	"github.com/anomalyco/intent-lang/internal/archive"
+	"github.com/anomalyco/intent-lang/internal/il"
+	"github.com/anomalyco/intent-lang/internal/provider"
+	"github.com/anomalyco/intent-lang/internal/refs"
 )
 
 // --- model (BYOM) ---

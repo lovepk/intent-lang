@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"intent-lang/internal/provider"
+	"github.com/anomalyco/intent-lang/internal/provider"
 )
 
 func rpcReq(t *testing.T, id int, method string, params any) string {

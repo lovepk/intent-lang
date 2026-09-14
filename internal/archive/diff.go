@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"intent-lang/internal/il"
+	"github.com/anomalyco/intent-lang/internal/il"
 )
 
 // Summarize produces a short commit message from the archive diff between two

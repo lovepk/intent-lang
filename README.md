@@ -75,7 +75,7 @@ CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。`accept`/`demo` 需
 
 其他 agent 有两种接入方式（都默认 BYOM——模型由调用方自带）：
 
-- **Go 库**：`import "intent-lang/pkg/intentlang"`，实现 `intentlang.Model` 接口后即可 `Record`/`Reproduce`/`Accept`，并用 `Parse`/`Lint`/`CompareEntries`/`OpenStore` 做确定性操作。见 `docs/intent-agent.md`。
+- **Go 库**：`import "github.com/anomalyco/intent-lang/pkg/intentlang"`，实现 `intentlang.Model` 接口后即可 `Record`/`Reproduce`/`Accept`，并用 `Parse`/`Lint`/`CompareEntries`/`OpenStore` 做确定性操作。见 `docs/intent-agent.md`。
 - **MCP server**：`il mcp` 把确定性能力与权威提示词暴露给任意 MCP agent（详见 `docs/intent-commands.md` §8）。
 
 接入 MCP 客户端（以 Claude Desktop 的 `claude_desktop_config.json` 为例）：
@@ -95,7 +95,7 @@ go build -o intent-lang.exe ./cmd/il   # 或 go install ./cmd/il
 }
 ```
 
-不配 API key → 只暴露确定性工具（纯 BYOM）；配 `DEEPSEEK_API_KEY_A` → 额外暴露 `il_record`/`il_reproduce`/`il_accept`。
+不配 provider → 只暴露确定性工具（纯 BYOM）；配了 provider（如 `DEEPSEEK_API_KEY_A`，或显式 `*_BASE_URL`）→ 额外暴露 `il_record`/`il_verify`/`il_reproduce`/`il_accept`/`il_lint_semantic`。
 
 ## 文件格式与编辑器支持
 
@@ -118,4 +118,10 @@ go build -o intent-lang.exe ./cmd/il   # 或 go install ./cmd/il
 
 M0 文档 → M1 IL → M2 档案仓库+对话内核 → M3 复现 → M4 端到端演示 → M5 真实 LLM → M6 规范打磨 → M7 多档案引用 → M8 分层一致性。
 
-生态（见 `docs/intent-ecosystem.md`）：近期只做四件务实的事——多 Provider（证明可移植）、`il fmt`、`il lint --fail-on` 门禁、规范版本纪律；注册表/LSP/平台等暂缓。
+生态（见 `docs/intent-ecosystem.md`）：近期务实项已完成——多 Provider（证明可移植）、`il fmt`、`il lint --fail-on` 门禁、规范版本纪律；注册表/LSP/平台等暂缓。
+
+## 许可与贡献
+
+- 开源许可：[Apache License 2.0](LICENSE)。
+- 贡献指南：[CONTRIBUTING.md](CONTRIBUTING.md)（构建/测试、规范变更流程、PR 要求）。
+- 规范版本与兼容规则见 `docs/intent-spec.md` §9；变更记录见 [CHANGELOG.md](CHANGELOG.md)。

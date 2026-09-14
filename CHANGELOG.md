@@ -11,6 +11,10 @@
 - **多 Provider**：`--provider <name>` 接入任意 OpenAI 兼容端点（OpenAI / Qwen / 本地 Ollama…），key 可空；`demo --provider-a/--provider-b` 跨模型；DeepSeek 环境变量名不变，向后兼容。
 - MCP 编排工具补齐 `il_verify`（单轮预览）与 `il_lint_semantic`（LLM 语义复查）。
 
+### Changed
+- **开源**：采用 Apache-2.0 许可；module path 改为 `github.com/anomalyco/intent-lang`（外部可直接 `go get`）。
+- 新增 `CONTRIBUTING.md`、GitHub Actions CI（离线 build/vet/test）。
+
 ## [0.1.0] - 2026-09-13
 
 ### Added
