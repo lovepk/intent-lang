@@ -1,6 +1,7 @@
 # intent-lang
 
 [![CI](https://github.com/lovepk/intent-lang/actions/workflows/ci.yml/badge.svg)](https://github.com/lovepk/intent-lang/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/intent-lang?label=npm)](https://www.npmjs.com/package/intent-lang)
 [![Go Reference](https://pkg.go.dev/badge/github.com/lovepk/intent-lang.svg)](https://pkg.go.dev/github.com/lovepk/intent-lang)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/tag/lovepk/intent-lang?label=release)](https://github.com/lovepk/intent-lang/releases)
