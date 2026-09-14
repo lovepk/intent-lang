@@ -7,15 +7,9 @@
 
 ## [Unreleased]
 
-### Added
-- **多 Provider**：`--provider <name>` 接入任意 OpenAI 兼容端点（OpenAI / Qwen / 本地 Ollama…），key 可空；`demo --provider-a/--provider-b` 跨模型；DeepSeek 环境变量名不变，向后兼容。
-- MCP 编排工具补齐 `il_verify`（单轮预览）与 `il_lint_semantic`（LLM 语义复查）。
-
-### Changed
-- **开源**：采用 Apache-2.0 许可；module path 改为 `github.com/lovepk/intent-lang`（外部可直接 `go get`）。
-- 新增 `CONTRIBUTING.md`、GitHub Actions CI（离线 build/vet/test）。
-
 ## [0.1.0] - 2026-09-13
+
+首个公开版本，采用 Apache-2.0 许可。
 
 ### Added
 - **IL 规范 v2.0**：五条根本原则（原则 0 = 记录优先、不干扰生成）+ 头四段/七段结构 + 跨档案引用 `<ref>`。
@@ -25,7 +19,12 @@
 - **CLI**：`chat` / `verify` / `repro` / `accept` / `lint` / `fmt` / `demo` / `mcp` / `log` / `show` / `rollback`。
   - `lint --fail-on error`：可作为 CI / pre-commit 门禁。
   - `fmt`：幂等规范化排版。
-- **`il mcp`**：MCP server（stdio）。纯工具 `il_parse`/`il_lint`/`il_diff`/`il_resolve`/`il_read`/`il_commit`/`il_log` + prompts + resources；配 API key 时可选编排工具 `il_record`/`il_reproduce`/`il_accept`。默认 BYOM（不调用模型）。
+- **多 Provider**：`--provider <name>` 接入任意 OpenAI 兼容端点（OpenAI / Qwen / 本地 Ollama…），key 可空；`demo --provider-a/--provider-b` 跨模型；DeepSeek 环境变量名不变，向后兼容。
+- **`il mcp`**：MCP server（stdio）。纯工具 `il_parse`/`il_lint`/`il_diff`/`il_resolve`/`il_read`/`il_commit`/`il_log` + prompts + resources；配置 provider 时可选编排工具 `il_record`/`il_verify`/`il_reproduce`/`il_accept`/`il_lint_semantic`。默认 BYOM（不调用模型）。
 - **`pkg/intentlang`**：公开 Go 嵌入库（BYOM：实现 `Model` 接口即可）。
 - **文档**：`intent-agent.md`（Agent 集成契约）、`intent-ecosystem.md`（场景与生态）。
 - **编辑器**：VS Code 扩展 + TextMate grammar。
+- **工程**：`CONTRIBUTING.md`、GitHub Actions CI（离线 build/vet/test）、示例档案入库。
+
+### Changed
+- module path 为 `github.com/lovepk/intent-lang`（外部可直接 `go get`）。
