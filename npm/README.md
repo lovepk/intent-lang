@@ -1,6 +1,6 @@
 # npm distribution
 
-`@lovepk/intent-lang` is a **thin distribution wrapper** around the Go binary.
+`intent-lang` is a **thin distribution wrapper** around the Go binary.
 There is deliberately no JavaScript reimplementation — the Go binary is the
 single source of truth, and this package just ships it.
 
@@ -8,7 +8,7 @@ single source of truth, and this package just ships it.
 
 ```
 npm/
-  intent-lang/          # main package (@lovepk/intent-lang)
+  intent-lang/          # main package (intent-lang)
     package.json        # bin: il, optionalDependencies: platform packages
     bin/il.js           # launcher: resolves + execs the platform binary
   platforms/            # generated (gitignored): one package per platform

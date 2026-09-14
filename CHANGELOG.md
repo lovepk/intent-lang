@@ -8,7 +8,7 @@
 ## [Unreleased]
 
 ### Added
-- **npm 分发**：`@lovepk/intent-lang`（平台二进制 + `npx`，无需 Go），含 6 平台包与打 tag 自动发布的 CI（需 `NPM_TOKEN`）。
+- **npm 分发**：`intent-lang`（平台二进制 + `npx`，无需 Go），含 6 平台包与打 tag 自动发布的 CI（需 `NPM_TOKEN`）。
 
 ## [0.1.0] - 2026-09-13
 

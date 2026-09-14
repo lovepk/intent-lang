@@ -82,13 +82,13 @@ CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。`accept`/`demo` 需
 
 - **Go 库**：`import "github.com/lovepk/intent-lang/pkg/intentlang"`，实现 `intentlang.Model` 接口后即可 `Record`/`Reproduce`/`Accept`，并用 `Parse`/`Lint`/`CompareEntries`/`OpenStore` 做确定性操作。见 `docs/intent-agent.md`。
 - **MCP server**：`il mcp` 把确定性能力与权威提示词暴露给任意 MCP agent（详见 `docs/intent-commands.md` §8）。
-- **npm（无需 Go）**：`@lovepk/intent-lang` 分发平台二进制，`npx` 即用。见 `npm/`。
+- **npm（无需 Go）**：`intent-lang` 分发平台二进制，`npx` 即用。见 `npm/`。
 
 ### npm 安装（Node 生态，无需 Go）
 
 ```sh
-npx -y @lovepk/intent-lang --help
-npx -y @lovepk/intent-lang lint --archive x.il --fail-on error
+npx -y intent-lang --help
+npx -y intent-lang lint --archive x.il --fail-on error
 ```
 
 MCP 客户端可直接用 `npx` 拉起：
@@ -98,7 +98,7 @@ MCP 客户端可直接用 `npx` 拉起：
   "mcpServers": {
     "intent-lang": {
       "command": "npx",
-      "args": ["-y", "@lovepk/intent-lang", "mcp", "--repo", ".il"]
+      "args": ["-y", "intent-lang", "mcp", "--repo", ".il"]
     }
   }
 }

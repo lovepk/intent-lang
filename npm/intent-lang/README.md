@@ -1,4 +1,4 @@
-# @lovepk/intent-lang
+# intent-lang
 
 Intent archive format & protocol for agents — **CLI + MCP server**.
 
@@ -11,9 +11,9 @@ implementation to drift.
 ## Install
 
 ```sh
-npm install -g @lovepk/intent-lang
+npm install -g intent-lang
 # or run without installing:
-npx -y @lovepk/intent-lang --help
+npx -y intent-lang --help
 ```
 
 ## Usage
@@ -31,7 +31,7 @@ MCP client config (e.g. Claude Desktop):
   "mcpServers": {
     "intent-lang": {
       "command": "npx",
-      "args": ["-y", "@lovepk/intent-lang", "mcp", "--repo", ".il"]
+      "args": ["-y", "intent-lang", "mcp", "--repo", ".il"]
     }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@lovepk/intent-lang",
+  "name": "intent-lang",
   "version": "0.1.0",
   "description": "Intent archive format & protocol for agents — CLI + MCP server (binary distribution)",
   "bin": {
@@ -9,12 +9,12 @@
     "bin"
   ],
   "optionalDependencies": {
-    "@lovepk/intent-lang-linux-x64": "0.1.0",
-    "@lovepk/intent-lang-linux-arm64": "0.1.0",
-    "@lovepk/intent-lang-darwin-x64": "0.1.0",
-    "@lovepk/intent-lang-darwin-arm64": "0.1.0",
-    "@lovepk/intent-lang-win32-x64": "0.1.0",
-    "@lovepk/intent-lang-win32-arm64": "0.1.0"
+    "intent-lang-linux-x64": "0.1.0",
+    "intent-lang-linux-arm64": "0.1.0",
+    "intent-lang-darwin-x64": "0.1.0",
+    "intent-lang-darwin-arm64": "0.1.0",
+    "intent-lang-win32-x64": "0.1.0",
+    "intent-lang-win32-arm64": "0.1.0"
   },
   "engines": {
     "node": ">=18"

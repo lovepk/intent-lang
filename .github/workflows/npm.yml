@@ -35,6 +35,11 @@ jobs:
       - name: Build platform packages
         run: node npm/scripts/build.mjs
 
+      - name: Who am I (diagnostic)
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish platform packages
         run: |
           for d in npm/platforms/*/; do

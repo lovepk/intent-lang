@@ -29,7 +29,7 @@ const targets = [
 const optionalDependencies = {};
 
 for (const t of targets) {
-  const pkgName = `@lovepk/intent-lang-${t.node}`;
+  const pkgName = `intent-lang-${t.node}`;
   optionalDependencies[pkgName] = version;
 
   const dir = join(platformsRoot, t.node);
@@ -65,7 +65,7 @@ for (const t of targets) {
   writeFileSync(join(dir, "package.json"), JSON.stringify(pkg, null, 2) + "\n");
   writeFileSync(
     join(dir, "README.md"),
-    `# ${pkgName}\n\nPlatform binary for [@lovepk/intent-lang](https://www.npmjs.com/package/@lovepk/intent-lang). Do not install directly.\n`
+    `# ${pkgName}\n\nPlatform binary for [intent-lang](https://www.npmjs.com/package/intent-lang). Do not install directly.\n`
   );
 }
 
