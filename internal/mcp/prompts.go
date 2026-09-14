@@ -3,7 +3,7 @@ package mcp
 import (
 	"encoding/json"
 
-	"github.com/anomalyco/intent-lang/internal/il"
+	"github.com/lovepk/intent-lang/internal/il"
 )
 
 // prompt is one MCP prompt: the authoritative system prompt for a role.

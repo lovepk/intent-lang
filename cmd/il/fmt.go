@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/anomalyco/intent-lang/internal/il"
+	"github.com/lovepk/intent-lang/internal/il"
 )
 
 // fmtCmd normalizes an archive's layout to the canonical form (header order,

@@ -3,7 +3,7 @@ package mcp
 import (
 	"encoding/json"
 
-	"github.com/anomalyco/intent-lang/docs"
+	"github.com/lovepk/intent-lang/docs"
 )
 
 // resource is one MCP resource: an authoritative read-only document.

@@ -23,7 +23,7 @@ IL 的目标是"其他 agent 能直接消费"。为此需要一份**与具体实
 >
 > **参考实现**：`il mcp`（stdio）提供工具面——tools `il_parse` / `il_lint` / `il_diff` / `il_resolve` / `il_read` / `il_commit` / `il_log`；prompts `write` / `repro` / `accept` / `lint` / `normalize`；resources `il://spec` / `il://agent` / `il://keywords`。默认不调用模型（BYOM）。配置了 API key 时，额外提供可选编排工具 `il_record` / `il_verify` / `il_reproduce` / `il_accept` / `il_lint_semantic`（由服务端代调模型）。
 >
-> **嵌入库**：Go 程序 import `github.com/anomalyco/intent-lang/pkg/intentlang`，实现 `intentlang.Model` 接口（BYOM）后即可 `Record`/`Reproduce`/`Accept`，并用 `Parse`/`Lint`/`CompareEntries`/`OpenStore` 等做确定性操作。
+> **嵌入库**：Go 程序 import `github.com/lovepk/intent-lang/pkg/intentlang`，实现 `intentlang.Model` 接口（BYOM）后即可 `Record`/`Reproduce`/`Accept`，并用 `Parse`/`Lint`/`CompareEntries`/`OpenStore` 等做确定性操作。
 
 ---
 

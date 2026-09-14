@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/anomalyco/intent-lang/internal/il"
-	"github.com/anomalyco/intent-lang/internal/provider"
+	"github.com/lovepk/intent-lang/internal/il"
+	"github.com/lovepk/intent-lang/internal/provider"
 )
 
 // Server speaks the Model Context Protocol over a newline-delimited JSON-RPC

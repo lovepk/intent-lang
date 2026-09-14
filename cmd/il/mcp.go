@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/anomalyco/intent-lang/internal/mcp"
-	"github.com/anomalyco/intent-lang/internal/provider"
+	"github.com/lovepk/intent-lang/internal/mcp"
+	"github.com/lovepk/intent-lang/internal/provider"
 )
 
 // cmdMCP runs the MCP server over stdio, exposing the deterministic half of IL

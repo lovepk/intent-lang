@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anomalyco/intent-lang/internal/archive"
+	"github.com/lovepk/intent-lang/internal/archive"
 )
 
 func storeFromFlags(args []string) (*archive.Store, error) {

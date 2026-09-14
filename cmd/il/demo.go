@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/anomalyco/intent-lang/internal/agent"
-	"github.com/anomalyco/intent-lang/internal/archive"
-	"github.com/anomalyco/intent-lang/internal/il"
-	"github.com/anomalyco/intent-lang/internal/provider"
+	"github.com/lovepk/intent-lang/internal/agent"
+	"github.com/lovepk/intent-lang/internal/archive"
+	"github.com/lovepk/intent-lang/internal/il"
+	"github.com/lovepk/intent-lang/internal/provider"
 )
 
 // demo runs the full golden path non-interactively:

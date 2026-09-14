@@ -75,7 +75,7 @@ CLI 按 `--key A|B` 切换两个凭据充当 LLM-A / LLM-B。`accept`/`demo` 需
 
 其他 agent 有两种接入方式（都默认 BYOM——模型由调用方自带）：
 
-- **Go 库**：`import "github.com/anomalyco/intent-lang/pkg/intentlang"`，实现 `intentlang.Model` 接口后即可 `Record`/`Reproduce`/`Accept`，并用 `Parse`/`Lint`/`CompareEntries`/`OpenStore` 做确定性操作。见 `docs/intent-agent.md`。
+- **Go 库**：`import "github.com/lovepk/intent-lang/pkg/intentlang"`，实现 `intentlang.Model` 接口后即可 `Record`/`Reproduce`/`Accept`，并用 `Parse`/`Lint`/`CompareEntries`/`OpenStore` 做确定性操作。见 `docs/intent-agent.md`。
 - **MCP server**：`il mcp` 把确定性能力与权威提示词暴露给任意 MCP agent（详见 `docs/intent-commands.md` §8）。
 
 接入 MCP 客户端（以 Claude Desktop 的 `claude_desktop_config.json` 为例）：

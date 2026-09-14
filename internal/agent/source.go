@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/anomalyco/intent-lang/internal/archive"
-	"github.com/anomalyco/intent-lang/internal/il"
-	"github.com/anomalyco/intent-lang/internal/refs"
+	"github.com/lovepk/intent-lang/internal/archive"
+	"github.com/lovepk/intent-lang/internal/il"
+	"github.com/lovepk/intent-lang/internal/refs"
 )
 
 // SourceOpts selects where an archive comes from: a single .il file, or a

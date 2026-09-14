@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/anomalyco/intent-lang/internal/agent"
-	"github.com/anomalyco/intent-lang/internal/archive"
-	"github.com/anomalyco/intent-lang/internal/il"
+	"github.com/lovepk/intent-lang/internal/agent"
+	"github.com/lovepk/intent-lang/internal/archive"
+	"github.com/lovepk/intent-lang/internal/il"
 )
 
 // tool is one MCP tool: a name, a description, a JSON schema and a handler.

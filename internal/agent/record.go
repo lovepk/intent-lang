@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/anomalyco/intent-lang/internal/il"
-	"github.com/anomalyco/intent-lang/internal/provider"
+	"github.com/lovepk/intent-lang/internal/il"
+	"github.com/lovepk/intent-lang/internal/provider"
 )
 
 // L1Problems runs the deterministic (L1) consistency checks on an archive

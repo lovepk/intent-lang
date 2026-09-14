@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/anomalyco/intent-lang/internal/agent"
+	"github.com/lovepk/intent-lang/internal/agent"
 )
 
 func accept(args []string) error {
