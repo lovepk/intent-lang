@@ -1,5 +1,10 @@
 # intent-lang
 
+[![CI](https://github.com/lovepk/intent-lang/actions/workflows/ci.yml/badge.svg)](https://github.com/lovepk/intent-lang/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/lovepk/intent-lang.svg)](https://pkg.go.dev/github.com/lovepk/intent-lang)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/tag/lovepk/intent-lang?label=release)](https://github.com/lovepk/intent-lang/releases)
+
 一种给 LLM 使用的意图语言 (Intent Language) 及其 agent 工作流：让"人与 LLM 的对话"沉淀为一份**独立于会话、可移植、可复现的意图档案**。
 
 > **定位**：面向 agent 的**意图交换格式 + 记录协议**，不是具体产品。**规范才是产品**，本仓库 CLI 只是参考实现与测试床；其他 agent 通过接口（MCP tool / 库 / 直接遵守双通道协议）消费它。详见 `docs/intent-goals.md` §2.1–2.2。
